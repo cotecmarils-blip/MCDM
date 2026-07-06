@@ -146,6 +146,11 @@ _frontend_url = os.environ.get('FRONTEND_URL', '').strip().rstrip('/')
 if _frontend_url and _frontend_url not in CORS_ALLOWED_ORIGINS:
     CORS_ALLOWED_ORIGINS.append(_frontend_url)
 
+# Railway: permitir cualquier frontend *.up.railway.app sin depender de variables de entorno.
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://[\w-]+\.up\.railway\.app$",
+]
+
 CSRF_TRUSTED_ORIGINS = [
     origin.strip()
     for origin in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',')
@@ -153,6 +158,11 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 if _frontend_url and _frontend_url not in CSRF_TRUSTED_ORIGINS:
     CSRF_TRUSTED_ORIGINS.append(_frontend_url)
+
+if not CSRF_TRUSTED_ORIGINS:
+    CSRF_TRUSTED_ORIGINS = [
+        "https://frontend-production-0fc32.up.railway.app",
+    ]
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
