@@ -7,7 +7,38 @@ import {
   redirectToLoginIfNeeded,
 } from './utils/authSession';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+function trimTrailingSlash(url) {
+  return url ? url.replace(/\/$/, '') : '';
+}
+
+function resolveApiConfig() {
+  const apiUrl = process.env.REACT_APP_API_URL;
+  const apiRoot = process.env.REACT_APP_API_ROOT;
+
+  if (apiUrl) {
+    const base = trimTrailingSlash(apiUrl);
+    const root = base.endsWith('/api') ? base.slice(0, -4) : base;
+    return { apiRoot: root, apiBaseUrl: `${root}/api` };
+  }
+
+  if (apiRoot) {
+    const root = trimTrailingSlash(apiRoot);
+    return { apiRoot: root, apiBaseUrl: `${root}/api` };
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return { apiRoot: origin, apiBaseUrl: `${origin}/api` };
+  }
+
+  return {
+    apiRoot: 'http://127.0.0.1:8000',
+    apiBaseUrl: 'http://127.0.0.1:8000/api',
+  };
+}
+
+const { apiRoot: API_ROOT, apiBaseUrl: API_BASE_URL } = resolveApiConfig();
+const MEDIA_BASE_URL = API_ROOT;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -414,7 +445,6 @@ export const documentosCriterio = {
   delete: (id) => api.delete(`/documentos-criterio/${id}/`),
 };
 
-export const MEDIA_BASE_URL = 'http://127.0.0.1:8000';
-export { API_BASE_URL };
+export { API_BASE_URL, API_ROOT, MEDIA_BASE_URL };
 
 export default api;

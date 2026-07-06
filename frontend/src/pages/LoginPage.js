@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { API_ROOT } from '../api';
 import { useTheme } from '../ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
 import { consumeStoredAuthMessage } from '../utils/authSession';
@@ -45,8 +46,8 @@ function LoginPage() {
     } catch (err) {
       if (!err.response) {
         setError(
-          'No se pudo conectar con el servidor (http://127.0.0.1:8000). '
-          + 'Asegúrate de que Django esté corriendo: .\\venv\\Scripts\\python.exe manage.py runserver',
+          `No se pudo conectar con el servidor (${API_ROOT}). `
+          + 'Verifica que el backend esté disponible o que REACT_APP_API_ROOT apunte al dominio correcto.',
         );
         return;
       }
