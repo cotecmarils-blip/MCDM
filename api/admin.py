@@ -1,0 +1,51 @@
+from django.contrib import admin
+
+from .models import (
+    Proyecto,
+    Requisito,
+    Alternativa,
+    Capacidad,
+    Caracteristica,
+    CaracteristicaPlantilla,
+    Documento,
+    Dimension,
+    Atributo,
+    Subatributo,
+    DocumentoCriterio,
+    Escenario,
+    PesoEscenario,
+    Omoe,
+    Mision,
+    GrupoAfinidad,
+    MopCriterio,
+    DpCriterio,
+    VopResultado,
+    ValorEvaluacion,
+    ProyectoMembership,
+    EvaluadorMision,
+    OfertanteAlternativa,
+)
+
+admin.site.register(Proyecto)
+admin.site.register(Requisito)
+admin.site.register(Alternativa)
+admin.site.register(Capacidad)
+admin.site.register(CaracteristicaPlantilla)
+admin.site.register(Caracteristica)
+admin.site.register(Documento)
+admin.site.register(Dimension)
+admin.site.register(Atributo)
+admin.site.register(Subatributo)
+admin.site.register(DocumentoCriterio)
+admin.site.register(Escenario)
+admin.site.register(PesoEscenario)
+admin.site.register(Omoe)
+admin.site.register(Mision)
+admin.site.register(GrupoAfinidad)
+admin.site.register(MopCriterio)
+admin.site.register(DpCriterio)
+admin.site.register(VopResultado)
+admin.site.register(ValorEvaluacion)
+admin.site.register(ProyectoMembership)
+admin.site.register(EvaluadorMision)
+admin.site.register(OfertanteAlternativa)

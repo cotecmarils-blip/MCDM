@@ -1,0 +1,1049 @@
+{
+    "name": "Oceanographic Vessel Selection",
+    "local_weight": 1.0,
+    "type": "Criterion",
+    "children": [
+        {
+            "name": "Effectiveness",
+            "local_weight": 0.5,
+            "type": "Criterion",
+            "children": [
+                {
+                    "name": "Oceanography, hydrography and geophysics",
+                    "local_weight": 1.0,
+                    "type": "Criterion",
+                    "children": [
+                        {
+                            "name": "Mobility (M1)",
+                            "local_weight": 0.4,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Range (M1)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 1000,
+                                        "goal": 6000,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Endurance (M1)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 15,
+                                        "goal": 60,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Maneuverability (M1)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Low": 0.0,
+                                            "Medium": 0.5,
+                                            "High": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Seakeeping (M1)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Poor": 0.0,
+                                            "Good": 0.8,
+                                            "Excellent": 1.0
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        },
+                        {
+                            "name": "Flexibility (M1)",
+                            "local_weight": 0.3,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Rescue and administrative auxiliary boat (M1)",
+                                    "local_weight": 0.33,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "None": 0.0,
+                                            "1 Boat": 0.5,
+                                            "2+ Boats": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Deck spaces (M1)",
+                                    "local_weight": 0.33,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 50,
+                                        "goal": 300,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Accommodations (M1)",
+                                    "local_weight": 0.34,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 20,
+                                        "goal": 150,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        },
+                        {
+                            "name": "Scientific marine mission (M1)",
+                            "local_weight": 0.3,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Multibeam deep & intermediate (M1)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Multibeam shallow (M1)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Support bathymetric surveys (M1)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Launch and recovery from side (M1)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Basic": 0.0,
+                                            "Advanced": 1.0
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        }
+                    ],
+                    "description": ""
+                },
+                {
+                    "name": "Protection of human life at sea",
+                    "local_weight": 1.0,
+                    "type": "Criterion",
+                    "children": [
+                        {
+                            "name": "Mobility (M2)",
+                            "local_weight": 0.4,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Range (M2)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 1000,
+                                        "goal": 6000,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Endurance (M2)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 15,
+                                        "goal": 60,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Maneuverability (M2)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Low": 0.0,
+                                            "Medium": 0.5,
+                                            "High": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Seakeeping (M2)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Poor": 0.0,
+                                            "Good": 0.8,
+                                            "Excellent": 1.0
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        },
+                        {
+                            "name": "Flexibility (M2)",
+                            "local_weight": 0.3,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Rescue and administrative auxiliary boat (M2)",
+                                    "local_weight": 0.33,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "None": 0.0,
+                                            "1 Boat": 0.5,
+                                            "2+ Boats": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Deck spaces (M2)",
+                                    "local_weight": 0.33,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 50,
+                                        "goal": 300,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Accommodations (M2)",
+                                    "local_weight": 0.34,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 20,
+                                        "goal": 150,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        },
+                        {
+                            "name": "Scientific marine mission (M2)",
+                            "local_weight": 0.3,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Multibeam deep & intermediate (M2)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Multibeam shallow (M2)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Support bathymetric surveys (M2)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Launch and recovery from side (M2)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Basic": 0.0,
+                                            "Advanced": 1.0
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        }
+                    ],
+                    "description": ""
+                },
+                {
+                    "name": "Humanitarian assistance and logistic support",
+                    "local_weight": 1.0,
+                    "type": "Criterion",
+                    "children": [
+                        {
+                            "name": "Mobility (M3)",
+                            "local_weight": 0.4,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Range (M3)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 1000,
+                                        "goal": 6000,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Endurance (M3)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 15,
+                                        "goal": 60,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Maneuverability (M3)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Low": 0.0,
+                                            "Medium": 0.5,
+                                            "High": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Seakeeping (M3)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Poor": 0.0,
+                                            "Good": 0.8,
+                                            "Excellent": 1.0
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        },
+                        {
+                            "name": "Flexibility (M3)",
+                            "local_weight": 0.3,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Rescue and administrative auxiliary boat (M3)",
+                                    "local_weight": 0.33,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "None": 0.0,
+                                            "1 Boat": 0.5,
+                                            "2+ Boats": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Deck spaces (M3)",
+                                    "local_weight": 0.33,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 50,
+                                        "goal": 300,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Accommodations (M3)",
+                                    "local_weight": 0.34,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 20,
+                                        "goal": 150,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        },
+                        {
+                            "name": "Scientific marine mission (M3)",
+                            "local_weight": 0.3,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Multibeam deep & intermediate (M3)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Multibeam shallow (M3)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Support bathymetric surveys (M3)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Launch and recovery from side (M3)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Basic": 0.0,
+                                            "Advanced": 1.0
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        }
+                    ],
+                    "description": ""
+                },
+                {
+                    "name": "Support to aids to navigation",
+                    "local_weight": 1.0,
+                    "type": "Criterion",
+                    "children": [
+                        {
+                            "name": "Mobility (M4)",
+                            "local_weight": 0.4,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Range (M4)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 1000,
+                                        "goal": 6000,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Endurance (M4)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 15,
+                                        "goal": 60,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Maneuverability (M4)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Low": 0.0,
+                                            "Medium": 0.5,
+                                            "High": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Seakeeping (M4)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Poor": 0.0,
+                                            "Good": 0.8,
+                                            "Excellent": 1.0
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        },
+                        {
+                            "name": "Flexibility (M4)",
+                            "local_weight": 0.3,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Rescue and administrative auxiliary boat (M4)",
+                                    "local_weight": 0.33,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "None": 0.0,
+                                            "1 Boat": 0.5,
+                                            "2+ Boats": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Deck spaces (M4)",
+                                    "local_weight": 0.33,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 50,
+                                        "goal": 300,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Accommodations (M4)",
+                                    "local_weight": 0.34,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 20,
+                                        "goal": 150,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        },
+                        {
+                            "name": "Scientific marine mission (M4)",
+                            "local_weight": 0.3,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Multibeam deep & intermediate (M4)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Multibeam shallow (M4)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Support bathymetric surveys (M4)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Launch and recovery from side (M4)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Basic": 0.0,
+                                            "Advanced": 1.0
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        }
+                    ],
+                    "description": ""
+                },
+                {
+                    "name": "Marine environment protection",
+                    "local_weight": 1.0,
+                    "type": "Criterion",
+                    "children": [
+                        {
+                            "name": "Mobility (M5)",
+                            "local_weight": 0.4,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Range (M5)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 1000,
+                                        "goal": 6000,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Endurance (M5)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 15,
+                                        "goal": 60,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Maneuverability (M5)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Low": 0.0,
+                                            "Medium": 0.5,
+                                            "High": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Seakeeping (M5)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Poor": 0.0,
+                                            "Good": 0.8,
+                                            "Excellent": 1.0
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        },
+                        {
+                            "name": "Flexibility (M5)",
+                            "local_weight": 0.3,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Rescue and administrative auxiliary boat (M5)",
+                                    "local_weight": 0.33,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "None": 0.0,
+                                            "1 Boat": 0.5,
+                                            "2+ Boats": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Deck spaces (M5)",
+                                    "local_weight": 0.33,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 50,
+                                        "goal": 300,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                },
+                                {
+                                    "name": "Accommodations (M5)",
+                                    "local_weight": 0.34,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "LinearUtilityFunction",
+                                        "threshold": 20,
+                                        "goal": 150,
+                                        "threshold_utility": 0.0,
+                                        "goal_utility": 1.0,
+                                        "is_increasing": true
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        },
+                        {
+                            "name": "Scientific marine mission (M5)",
+                            "local_weight": 0.3,
+                            "type": "Criterion",
+                            "children": [
+                                {
+                                    "name": "Multibeam deep & intermediate (M5)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Multibeam shallow (M5)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Support bathymetric surveys (M5)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "No": 0.0,
+                                            "Yes": 1.0
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "Launch and recovery from side (M5)",
+                                    "local_weight": 0.25,
+                                    "type": "Attribute",
+                                    "children": [],
+                                    "utility_function": {
+                                        "type": "DiscreteUtilityFunction",
+                                        "mapping": {
+                                            "Basic": 0.0,
+                                            "Advanced": 1.0
+                                        }
+                                    }
+                                }
+                            ],
+                            "description": ""
+                        }
+                    ],
+                    "description": ""
+                }
+            ],
+            "description": ""
+        },
+        {
+            "name": "Cost",
+            "local_weight": 0.3,
+            "type": "Criterion",
+            "children": [
+                {
+                    "name": "Acquisition Cost",
+                    "local_weight": 0.5,
+                    "type": "Attribute",
+                    "children": [],
+                    "utility_function": {
+                        "type": "LinearUtilityFunction",
+                        "threshold": 250,
+                        "goal": 50,
+                        "threshold_utility": 0.0,
+                        "goal_utility": 1.0,
+                        "is_increasing": false
+                    }
+                },
+                {
+                    "name": "Operation Cost",
+                    "local_weight": 0.3,
+                    "type": "Attribute",
+                    "children": [],
+                    "utility_function": {
+                        "type": "LinearUtilityFunction",
+                        "threshold": 20,
+                        "goal": 2,
+                        "threshold_utility": 0.0,
+                        "goal_utility": 1.0,
+                        "is_increasing": false
+                    }
+                },
+                {
+                    "name": "Maintenance Cost",
+                    "local_weight": 0.2,
+                    "type": "Attribute",
+                    "children": [],
+                    "utility_function": {
+                        "type": "LinearUtilityFunction",
+                        "threshold": 10,
+                        "goal": 1,
+                        "threshold_utility": 0.0,
+                        "goal_utility": 1.0,
+                        "is_increasing": false
+                    }
+                }
+            ],
+            "description": ""
+        },
+        {
+            "name": "Risk",
+            "local_weight": 0.2,
+            "type": "Criterion",
+            "children": [
+                {
+                    "name": "Performance Risk",
+                    "local_weight": 0.33,
+                    "type": "Criterion",
+                    "children": [
+                        {
+                            "name": "Technology Maturity",
+                            "local_weight": 1.0,
+                            "type": "Attribute",
+                            "children": [],
+                            "utility_function": {
+                                "type": "DiscreteUtilityFunction",
+                                "mapping": {
+                                    "Experimental": 0.0,
+                                    "Proven": 1.0
+                                }
+                            }
+                        }
+                    ],
+                    "description": ""
+                },
+                {
+                    "name": "Cost Risk",
+                    "local_weight": 0.33,
+                    "type": "Criterion",
+                    "children": [
+                        {
+                            "name": "Budget Overrun Probability",
+                            "local_weight": 1.0,
+                            "type": "Attribute",
+                            "children": [],
+                            "utility_function": {
+                                "type": "DiscreteUtilityFunction",
+                                "mapping": {
+                                    "High": 0.0,
+                                    "Medium": 0.5,
+                                    "Low": 1.0
+                                }
+                            }
+                        }
+                    ],
+                    "description": ""
+                },
+                {
+                    "name": "Schedule Risk",
+                    "local_weight": 0.34,
+                    "type": "Criterion",
+                    "children": [
+                        {
+                            "name": "Delay Probability",
+                            "local_weight": 1.0,
+                            "type": "Attribute",
+                            "children": [],
+                            "utility_function": {
+                                "type": "LinearUtilityFunction",
+                                "threshold": 100,
+                                "goal": 0,
+                                "threshold_utility": 0.0,
+                                "goal_utility": 1.0,
+                                "is_increasing": false
+                            }
+                        }
+                    ],
+                    "description": ""
+                }
+            ],
+            "description": ""
+        }
+    ],
+    "description": "Select the best oceanographic vessel"
+}
