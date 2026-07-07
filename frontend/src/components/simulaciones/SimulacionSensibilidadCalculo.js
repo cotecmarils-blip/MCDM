@@ -392,7 +392,7 @@ function SimulacionSensibilidadCalculo({ proyectoId, resultado }) {
     <div className="space-y-4">
       <div>
         <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-          Análisis de sensibilidad del cálculo
+          Análisis de sensibilidad determinística del cálculo
         </h3>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
           Pesos iniciales tomados del cálculo guardado

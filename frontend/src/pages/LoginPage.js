@@ -105,13 +105,13 @@ function LoginPage() {
             <img
               src={LOGO_ENAP}
               alt="ENAP"
-              className="h-10 w-auto max-w-[120px] object-contain brightness-0 invert"
+              className="h-14 w-auto max-w-[120px] object-contain brightness-0 invert"
             />
             <span className="hidden h-8 w-px bg-white/20 sm:block" aria-hidden />
             <img
               src={LOGO_COTECMAR_WHITE}
               alt="Cotecmar"
-              className="h-9 w-auto max-w-[140px] object-contain"
+              className="h-12 w-auto max-w-[140px] object-contain"
             />
           </div>
           <div className="lg:hidden">
@@ -133,21 +133,6 @@ function LoginPage() {
             Evalúe alternativas, ponderación de criterios, simulaciones y análisis
             de sensibilidad en un entorno integrado para proyectos de selección.
           </p>
-
-          <ul className="mt-8 hidden space-y-3 text-sm text-navy-100/90 sm:block">
-            <li className="flex items-start gap-3">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-navy-300" />
-              Gestión de proyectos, alternativas y árbol de criterios OMOE
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-navy-300" />
-              Escenarios, pesos AHP y evaluación multicriterio
-            </li>
-            <li className="flex items-start gap-3">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-navy-300" />
-              Simulaciones, ranking MADM y trazabilidad del cálculo
-            </li>
-          </ul>
         </div>
 
         <p className="relative z-10 hidden text-xs text-navy-300/80 lg:block">

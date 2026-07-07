@@ -8,7 +8,6 @@ const NAV_ITEMS = [
   { id: 'pesos', label: 'Definición de escenarios' },
   { id: 'evaluacion', label: 'Evaluación' },
   { id: 'simulaciones', label: 'Modulo de Simulaciones' },
-  { id: 'sensibilidad', label: 'Sensibilidad AHP' },
   { id: 'usuarios', label: 'Gestión de usuarios' },
 ];
 

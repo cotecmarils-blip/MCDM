@@ -3,7 +3,7 @@ import React from 'react';
 const TABS = [
   { id: 'resultados', label: 'Resultados' },
   { id: 'graficos', label: 'Gráficos' },
-  { id: 'sensibilidad', label: 'Sensibilidad' },
+  { id: 'sensibilidad', label: 'Sensibilidad determinística' },
 ];
 
 function SimulacionResultadoTabs({ activeTab, onChange, tabs = null }) {
