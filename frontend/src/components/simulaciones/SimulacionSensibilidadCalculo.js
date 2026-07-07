@@ -424,7 +424,7 @@ function SimulacionSensibilidadCalculo({ proyectoId, resultado }) {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
-        <section className="xl:col-span-7 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-navy-900/50 p-3">
+        <section className="xl:col-span-7 rounded-xl border border-gray-200 dark:border-gray-700 bg-[#f7f7ef] dark:bg-navy-900/50 p-3">
           <SimulacionSensibilidadPerformanceChart
             key={`perf-${historialKey}`}
             criteria={criteria}
@@ -437,7 +437,7 @@ function SimulacionSensibilidadCalculo({ proyectoId, resultado }) {
           />
         </section>
 
-        <section className="xl:col-span-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-navy-900/50 p-3">
+        <section className="xl:col-span-5 rounded-xl border border-gray-200 dark:border-gray-700 bg-[#f7f7ef] dark:bg-navy-900/50 p-3">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <label className="text-[11px] text-gray-500 flex items-center gap-2">
               <span className="font-semibold">Dimensión (Gradient)</span>
@@ -485,7 +485,7 @@ function SimulacionSensibilidadCalculo({ proyectoId, resultado }) {
           )}
         </section>
 
-        <section className="xl:col-span-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-navy-900/50 p-3">
+        <section className="xl:col-span-8 rounded-xl border border-gray-200 dark:border-gray-700 bg-[#f7f7ef] dark:bg-navy-900/50 p-3">
           <SimulacionSensibilidadDynamicPanel
             criteria={criteria}
             weights={weights}
@@ -496,7 +496,7 @@ function SimulacionSensibilidadCalculo({ proyectoId, resultado }) {
           />
         </section>
 
-        <aside className="xl:col-span-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-navy-900/50 p-3 min-h-[200px]">
+        <aside className="xl:col-span-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-[#f7f7ef] dark:bg-navy-900/50 p-3 min-h-[200px]">
           <SimulacionSensibilidadRanking
             ranking={ranking}
             weights={weights}
@@ -508,7 +508,7 @@ function SimulacionSensibilidadCalculo({ proyectoId, resultado }) {
         </aside>
       </div>
 
-      <section className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-navy-900/50 p-3">
+      <section className="rounded-xl border border-gray-200 dark:border-gray-700 bg-[#f7f7ef] dark:bg-navy-900/50 p-3">
         {tornadoError && (
           <p className="text-[10px] text-amber-700 dark:text-amber-300 mb-2">{tornadoError}</p>
         )}

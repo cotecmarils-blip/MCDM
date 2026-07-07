@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Plot from 'react-plotly.js';
 import { useTheme } from '../../ThemeContext';
 import { getAlternativaChartLabel, getAlternativaHoverTitle } from '../../utils/alternativaDisplay';
+import { SIMULACION_CHART_BG } from '../simulaciones/simulacionChartTheme';
 
 const CHART_FONT = 'Arial, Helvetica, sans-serif';
 const MIN_AXES_2D = 2;
@@ -40,14 +41,14 @@ function buildChartTheme(isDark) {
     };
   }
   return {
-    paper_bgcolor: 'rgba(255, 255, 255, 0)',
-    plot_bgcolor: '#f4f4f5',
+    paper_bgcolor: SIMULACION_CHART_BG,
+    plot_bgcolor: SIMULACION_CHART_BG,
     fontColor: '#0f172a',
     titleColor: '#0f172a',
     gridColor: '#a1a1aa',
     axisLineColor: '#52525b',
     zeroLineColor: '#71717a',
-    sceneBg: '#e4e4e7',
+    sceneBg: SIMULACION_CHART_BG,
     markerLine: '#ffffff',
     textColor: '#0f172a',
     markerColors: MARKER_COLORS_LIGHT,
@@ -470,8 +471,9 @@ function TradeoffCharts({
     : '';
 
   const chartBoxClass = `rounded-xl border p-2 min-h-[480px] ${
-    isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 bg-gray-50 shadow-inner'
+    isDark ? 'border-gray-700 bg-gray-900' : 'border-gray-200 shadow-inner'
   }`;
+  const chartBoxStyle = isDark ? undefined : { backgroundColor: SIMULACION_CHART_BG };
 
   return (
     <div className="space-y-4">
@@ -628,7 +630,7 @@ function TradeoffCharts({
         </p>
       )}
 
-      <div className={chartBoxClass}>
+      <div className={chartBoxClass} style={chartBoxStyle}>
         {effectiveView === 'radar' && canPlotRadar ? (
           <Plot
             key={`radar-${isDark}-${axisKeys}`}
