@@ -308,6 +308,7 @@ function CriterioDynamicForm({
           }}
           disabled={disabled}
           inputClass={inputClass}
+          compact={compact}
         />
       )}
 

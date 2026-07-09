@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import { useTheme } from '../../ThemeContext';
 import { buildPerformanceSeries, coerceWeightsMap } from './simulacionSensibilidadUtils';
+import { DEFAULT_PLOT_BG_COLOR } from './simulacionPlotBg';
 
 export default function SimulacionSensibilidadPerformanceChart({
   criteria,
@@ -11,7 +12,7 @@ export default function SimulacionSensibilidadPerformanceChart({
   scoresByAlt,
   onWeightChange,
   metodoLabel,
-  plotBgColor = '#f7f7ef',
+  plotBgColor = DEFAULT_PLOT_BG_COLOR,
 }) {
   const { isDark } = useTheme();
 
@@ -55,41 +56,44 @@ export default function SimulacionSensibilidadPerformanceChart({
     })),
   ];
 
+  const layout = useMemo(() => ({
+    autosize: true,
+    height: 340,
+    datarevision: plotRevision,
+    uirevision: 'perf',
+    margin: { l: 52, r: 52, t: 28, b: 72 },
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: plotBgColor,
+    font: { color: isDark ? '#e5e7eb' : '#374151', size: 10 },
+    xaxis: { tickangle: -30, gridcolor: isDark ? '#374151' : '#e5e7eb' },
+    yaxis: {
+      title: 'Crit %',
+      range: [0, 1.05],
+      side: 'left',
+      gridcolor: isDark ? '#374151' : '#e5e7eb',
+      tickformat: '.0%',
+    },
+    yaxis2: {
+      title: `Alt % / ${metodoLabel}`,
+      range: [0, 1.05],
+      overlaying: 'y',
+      side: 'right',
+      gridcolor: 'transparent',
+    },
+    legend: { orientation: 'h', y: -0.35, font: { size: 9 } },
+    bargap: 0.25,
+    barmode: 'overlay',
+  }), [plotRevision, plotBgColor, isDark, metodoLabel]);
+
   return (
     <div className="space-y-2">
       <p className="text-[10px] uppercase tracking-wide font-semibold text-gray-400 px-1">
         Performance
       </p>
       <Plot
+        key={`plot-bg-${plotBgColor}`}
         data={plotData}
-        layout={{
-          autosize: true,
-          height: 340,
-          datarevision: plotRevision,
-          uirevision: 'perf',
-          margin: { l: 52, r: 52, t: 28, b: 72 },
-          paper_bgcolor: 'transparent',
-          plot_bgcolor: plotBgColor,
-          font: { color: isDark ? '#e5e7eb' : '#374151', size: 10 },
-          xaxis: { tickangle: -30, gridcolor: isDark ? '#374151' : '#e5e7eb' },
-          yaxis: {
-            title: 'Crit %',
-            range: [0, 1.05],
-            side: 'left',
-            gridcolor: isDark ? '#374151' : '#e5e7eb',
-            tickformat: '.0%',
-          },
-          yaxis2: {
-            title: `Alt % / ${metodoLabel}`,
-            range: [0, 1.05],
-            overlaying: 'y',
-            side: 'right',
-            gridcolor: 'transparent',
-          },
-          legend: { orientation: 'h', y: -0.35, font: { size: 9 } },
-          bargap: 0.25,
-          barmode: 'overlay',
-        }}
+        layout={layout}
         config={{ responsive: true, displayModeBar: false }}
         style={{ width: '100%' }}
         onClick={(event) => {

@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import { useTheme } from '../../ThemeContext';
+import { DEFAULT_PLOT_BG_COLOR } from './simulacionPlotBg';
 
 export default function SimulacionSensibilidadGradientChart({
   sweep,
@@ -9,7 +10,7 @@ export default function SimulacionSensibilidadGradientChart({
   metodoLabel,
   currentWeightPct,
   loading = false,
-  plotBgColor = '#f7f7ef',
+  plotBgColor = DEFAULT_PLOT_BG_COLOR,
 }) {
   const { isDark } = useTheme();
 
@@ -26,6 +27,36 @@ export default function SimulacionSensibilidadGradientChart({
       hovertemplate: `${alt.name}<br>Peso: %{x:.1f}%<br>${metodoLabel}: %{y:.4f}<extra></extra>`,
     }));
   }, [sweep, alternatives, metodoLabel]);
+
+  const layout = useMemo(() => ({
+    autosize: true,
+    height: 340,
+    margin: { l: 48, r: 24, t: 24, b: 48 },
+    paper_bgcolor: 'transparent',
+    plot_bgcolor: plotBgColor,
+    font: { color: isDark ? '#e5e7eb' : '#374151', size: 11 },
+    xaxis: {
+      title: `Peso de ${dimension} (%)`,
+      range: [0, 100],
+      gridcolor: isDark ? '#374151' : '#e5e7eb',
+    },
+    yaxis: {
+      title: metodoLabel,
+      gridcolor: isDark ? '#374151' : '#e5e7eb',
+    },
+    legend: { orientation: 'h', y: -0.28, font: { size: 9 } },
+    shapes: currentWeightPct != null
+      ? [{
+          type: 'line',
+          x0: currentWeightPct,
+          x1: currentWeightPct,
+          y0: 0,
+          y1: 1,
+          yref: 'paper',
+          line: { color: '#dc2626', width: 2 },
+        }]
+      : [],
+  }), [plotBgColor, isDark, dimension, metodoLabel, currentWeightPct]);
 
   if (!traces.length) {
     if (loading) {
@@ -53,36 +84,9 @@ export default function SimulacionSensibilidadGradientChart({
         Gradient — peso de «{dimension}»
       </p>
       <Plot
+        key={`plot-bg-${plotBgColor}`}
         data={traces}
-        layout={{
-          autosize: true,
-          height: 340,
-          margin: { l: 48, r: 24, t: 24, b: 48 },
-          paper_bgcolor: 'transparent',
-          plot_bgcolor: plotBgColor,
-          font: { color: isDark ? '#e5e7eb' : '#374151', size: 11 },
-          xaxis: {
-            title: `Peso de ${dimension} (%)`,
-            range: [0, 100],
-            gridcolor: isDark ? '#374151' : '#e5e7eb',
-          },
-          yaxis: {
-            title: metodoLabel,
-            gridcolor: isDark ? '#374151' : '#e5e7eb',
-          },
-          legend: { orientation: 'h', y: -0.28, font: { size: 9 } },
-          shapes: currentWeightPct != null
-            ? [{
-                type: 'line',
-                x0: currentWeightPct,
-                x1: currentWeightPct,
-                y0: 0,
-                y1: 1,
-                yref: 'paper',
-                line: { color: '#dc2626', width: 2 },
-              }]
-            : [],
-        }}
+        layout={layout}
         config={{ responsive: true, displayModeBar: false }}
         style={{ width: '100%' }}
       />

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { simulacionApi } from '../../api';
+import { simulacionApi, alternativas as alternativasApi } from '../../api';
 import SplitColumnLayout from '../../layout/SplitColumnLayout';
 import SimulacionAnalisis from './SimulacionAnalisis';
 import SimulacionHistorialSidebar from './SimulacionHistorialSidebar';
@@ -11,6 +11,7 @@ import SimulacionGraficosCalculo from './SimulacionGraficosCalculo';
 import SimulacionSensibilidadCalculo from './SimulacionSensibilidadCalculo';
 import SimulacionExportButtons from './SimulacionExportButtons';
 import SimulacionResultadoTabs from './SimulacionResultadoTabs';
+import { useSimulacionPlotBg } from './simulacionPlotBg';
 import { validatePesosDimensionesPercent } from '../../utils/pesoUtils';
 import { createEmptyCalcConfig, buildPreviewPayload } from './simulacionWizardSteps';
 import { MODAL_BACKDROP_CLASS } from '../../utils/modalBackdrop';
@@ -32,6 +33,7 @@ function SimulacionResultados({
   showGraficos = false,
 }) {
   const [vistaCalculo, setVistaCalculo] = useState('resultados');
+  const { plotBgColor, handlePlotBgColorChange } = useSimulacionPlotBg();
 
   useEffect(() => {
     setVistaCalculo('resultados');
@@ -75,9 +77,19 @@ function SimulacionResultados({
       </div>
 
       {vistaGraficos ? (
-        <SimulacionGraficosCalculo resultado={resultado} soloMatriz={soloMatriz} />
+        <SimulacionGraficosCalculo
+          resultado={resultado}
+          soloMatriz={soloMatriz}
+          plotBgColor={plotBgColor}
+          onPlotBgColorChange={handlePlotBgColorChange}
+        />
       ) : vistaSensibilidad ? (
-        <SimulacionSensibilidadCalculo proyectoId={proyectoId} resultado={resultado} />
+        <SimulacionSensibilidadCalculo
+          proyectoId={proyectoId}
+          resultado={resultado}
+          plotBgColor={plotBgColor}
+          onPlotBgColorChange={handlePlotBgColorChange}
+        />
       ) : soloMatriz ? (
         <div>
           <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">
@@ -209,6 +221,7 @@ function SimulacionesPanel({ proyectoId, canWrite = true }) {
   const [selectedHistorialId, setSelectedHistorialId] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [opcionesMeta, setOpcionesMeta] = useState(null);
+  const [apodoById, setApodoById] = useState({});
   const [calcConfig, setCalcConfig] = useState(null);
   const [stepError, setStepError] = useState(null);
   const [wizardKey, setWizardKey] = useState(0);
@@ -239,6 +252,26 @@ function SimulacionesPanel({ proyectoId, canWrite = true }) {
   useEffect(() => {
     loadHistorial();
   }, [loadHistorial]);
+
+  useEffect(() => {
+    let cancelled = false;
+    alternativasApi
+      .getByProyecto(proyectoId)
+      .then((res) => {
+        if (cancelled) return;
+        const map = {};
+        (res.data || []).forEach((alt) => {
+          map[alt.id] = alt.apodo || '';
+        });
+        setApodoById(map);
+      })
+      .catch(() => {
+        if (!cancelled) setApodoById({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [proyectoId]);
 
   useEffect(() => {
     try {
@@ -487,6 +520,17 @@ function SimulacionesPanel({ proyectoId, canWrite = true }) {
 
   const showGraficosCalculo = Boolean(selectedHistorialId && resultado?.ok);
 
+  const resultadoConApodos = useMemo(() => {
+    if (!resultado?.alternativas?.length) return resultado;
+    if (!apodoById || Object.keys(apodoById).length === 0) return resultado;
+    return {
+      ...resultado,
+      alternativas: resultado.alternativas.map((alt) => (
+        apodoById[alt.id] != null ? { ...alt, apodo: apodoById[alt.id] } : alt
+      )),
+    };
+  }, [resultado, apodoById]);
+
   return (
     <div className="flex flex-col flex-1 min-h-0 h-full">
       <SplitColumnLayout
@@ -581,7 +625,7 @@ function SimulacionesPanel({ proyectoId, canWrite = true }) {
             {resultado?.ok && (
               <SimulacionResultados
                 proyectoId={proyectoId}
-                resultado={resultado}
+                resultado={resultadoConApodos}
                 analisisAltId={analisisAltId}
                 setAnalisisAltId={setAnalisisAltId}
                 analisisRef={analisisRef}

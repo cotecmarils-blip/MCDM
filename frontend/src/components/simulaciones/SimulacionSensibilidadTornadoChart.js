@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import { useTheme } from '../../ThemeContext';
+import { DEFAULT_PLOT_BG_COLOR } from './simulacionPlotBg';
 
 function abbreviateLabel(text, max = 28) {
   const s = String(text ?? '').trim();
@@ -13,7 +14,7 @@ export default function SimulacionSensibilidadTornadoChart({
   metodoLabel,
   loading,
   syncing = false,
-  plotBgColor = '#f7f7ef',
+  plotBgColor = DEFAULT_PLOT_BG_COLOR,
 }) {
   const { isDark } = useTheme();
 
@@ -45,6 +46,47 @@ export default function SimulacionSensibilidadTornadoChart({
     };
   }, [payload]);
 
+  const gridColor = isDark ? '#374151' : '#e5e7eb';
+  const fontColor = isDark ? '#e5e7eb' : '#374151';
+  const height = plot ? Math.max(300, plot.labels.length * 46 + 100) : 300;
+
+  const layout = useMemo(() => {
+    if (!plot) return {};
+    return {
+      autosize: true,
+      height,
+      datarevision: `${plot.baseline}-${plot.labels.join('|')}`,
+      uirevision: 'tornado',
+      barmode: 'overlay',
+      margin: { l: 140, r: 32, t: 28, b: 48 },
+      paper_bgcolor: 'transparent',
+      plot_bgcolor: plotBgColor,
+      font: { color: fontColor, size: 11 },
+      xaxis: {
+        title: `Score ${metodoLabel}`,
+        gridcolor: gridColor,
+        zeroline: false,
+      },
+      yaxis: {
+        autorange: 'reversed',
+        gridcolor: gridColor,
+      },
+      legend: {
+        orientation: 'h',
+        y: 1.12,
+        font: { size: 10, color: fontColor },
+      },
+      shapes: [{
+        type: 'line',
+        x0: plot.baseline,
+        x1: plot.baseline,
+        y0: -0.5,
+        y1: plot.labels.length - 0.5,
+        line: { color: '#dc2626', width: 2, dash: 'dot' },
+      }],
+    };
+  }, [plot, plotBgColor, fontColor, gridColor, metodoLabel, height]);
+
   if (loading && !plot) {
     return (
       <p className="text-xs text-gray-500 dark:text-gray-400 py-10 text-center">
@@ -60,10 +102,6 @@ export default function SimulacionSensibilidadTornadoChart({
       </p>
     );
   }
-
-  const gridColor = isDark ? '#374151' : '#e5e7eb';
-  const fontColor = isDark ? '#e5e7eb' : '#374151';
-  const height = Math.max(300, plot.labels.length * 46 + 100);
 
   return (
     <div className="space-y-2 relative">
@@ -81,6 +119,7 @@ export default function SimulacionSensibilidadTornadoChart({
         Línea roja = score con los pesos que tiene ahora ({plot.baseline.toFixed(4)}).
       </p>
       <Plot
+        key={`plot-bg-${plotBgColor}`}
         data={[
           {
             type: 'bar',
@@ -119,39 +158,7 @@ export default function SimulacionSensibilidadTornadoChart({
             ]),
           },
         ]}
-        layout={{
-          autosize: true,
-          height,
-          datarevision: `${plot.baseline}-${plot.labels.join('|')}`,
-          uirevision: 'tornado',
-          barmode: 'overlay',
-          margin: { l: 140, r: 32, t: 28, b: 48 },
-          paper_bgcolor: 'transparent',
-          plot_bgcolor: plotBgColor,
-          font: { color: fontColor, size: 11 },
-          xaxis: {
-            title: `Score ${metodoLabel}`,
-            gridcolor: gridColor,
-            zeroline: false,
-          },
-          yaxis: {
-            autorange: 'reversed',
-            gridcolor: gridColor,
-          },
-          legend: {
-            orientation: 'h',
-            y: 1.12,
-            font: { size: 10, color: fontColor },
-          },
-          shapes: [{
-            type: 'line',
-            x0: plot.baseline,
-            x1: plot.baseline,
-            y0: -0.5,
-            y1: plot.labels.length - 0.5,
-            line: { color: '#dc2626', width: 2, dash: 'dot' },
-          }],
-        }}
+        layout={layout}
         config={{ responsive: true, displayModeBar: false }}
         style={{ width: '100%' }}
       />

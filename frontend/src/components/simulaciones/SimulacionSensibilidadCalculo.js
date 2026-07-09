@@ -15,6 +15,7 @@ import SimulacionSensibilidadDynamicPanel from './SimulacionSensibilidadDynamicP
 import SimulacionSensibilidadGradientChart from './SimulacionSensibilidadGradientChart';
 import SimulacionSensibilidadTornadoChart from './SimulacionSensibilidadTornadoChart';
 import SimulacionSensibilidadRanking from './SimulacionSensibilidadRanking';
+import SimulacionPlotBgPicker from './SimulacionPlotBgPicker';
 
 const MADM_LABELS = {
   topsis: 'TOPSIS',
@@ -34,10 +35,13 @@ const MADM_LABELS = {
 const RANK_DEBOUNCE_MS = 400;
 const RANK_LOADING_DELAY_MS = 350;
 const TORNADO_SYNC_MS = 280;
-const DEFAULT_PLOT_BG_COLOR = '#f7f7ef';
-const PLOT_BG_STORAGE_KEY = 'hatd-sensibilidad-plot-bg';
 
-function SimulacionSensibilidadCalculo({ proyectoId, resultado }) {
+function SimulacionSensibilidadCalculo({
+  proyectoId,
+  resultado,
+  plotBgColor = '#f7f7ef',
+  onPlotBgColorChange,
+}) {
   const historialKey = resultado?.historial_id ?? resultado?.titulo_historial ?? '';
 
   const bootstrap = useMemo(
@@ -66,22 +70,6 @@ function SimulacionSensibilidadCalculo({ proyectoId, resultado }) {
   const [rankError, setRankError] = useState(null);
   const [sweepError, setSweepError] = useState(null);
   const [tornadoError, setTornadoError] = useState(null);
-  const [plotBgColor, setPlotBgColor] = useState(() => {
-    try {
-      return localStorage.getItem(PLOT_BG_STORAGE_KEY) || DEFAULT_PLOT_BG_COLOR;
-    } catch {
-      return DEFAULT_PLOT_BG_COLOR;
-    }
-  });
-
-  const handlePlotBgColorChange = useCallback((color) => {
-    setPlotBgColor(color);
-    try {
-      localStorage.setItem(PLOT_BG_STORAGE_KEY, color);
-    } catch {
-      /* ignore */
-    }
-  }, []);
 
   const rankDebounceRef = useRef(null);
   const rankLoadingTimerRef = useRef(null);
@@ -409,9 +397,14 @@ function SimulacionSensibilidadCalculo({ proyectoId, resultado }) {
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-          Análisis de sensibilidad determinística del cálculo
-        </h3>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+            Análisis de sensibilidad determinística del cálculo
+          </h3>
+          {onPlotBgColorChange && (
+            <SimulacionPlotBgPicker plotBgColor={plotBgColor} onChange={onPlotBgColorChange} />
+          )}
+        </div>
         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
           Pesos iniciales tomados del cálculo guardado
           {bootstrap.pesos_metodo ? ` (${bootstrap.pesos_metodo})` : ''}.
@@ -439,36 +432,12 @@ function SimulacionSensibilidadCalculo({ proyectoId, resultado }) {
             <span className="text-amber-700 dark:text-amber-300">{rankError}</span>
           )}
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-            <span className="font-medium">Fondo del área de gráfica</span>
-            <input
-              type="color"
-              value={plotBgColor}
-              onChange={(e) => handlePlotBgColorChange(e.target.value)}
-              className="h-8 w-10 cursor-pointer rounded border border-gray-300 dark:border-gray-600 bg-transparent p-0.5"
-              aria-label="Color de fondo del área de trazado de las gráficas"
-            />
-            <span className="font-mono text-[11px] text-gray-500 dark:text-gray-400 uppercase">
-              {plotBgColor}
-            </span>
-          </label>
-          {plotBgColor !== DEFAULT_PLOT_BG_COLOR && (
-            <button
-              type="button"
-              onClick={() => handlePlotBgColorChange(DEFAULT_PLOT_BG_COLOR)}
-              className="text-xs text-navy-700 dark:text-navy-300 hover:underline"
-            >
-              Restaurar predeterminado
-            </button>
-          )}
-        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-3">
         <section className="xl:col-span-7 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-navy-900/50 p-3">
           <SimulacionSensibilidadPerformanceChart
-            key={`perf-${historialKey}`}
+            key={`perf-${historialKey}-${plotBgColor}`}
             criteria={criteria}
             weights={weights}
             localPriorities={localPriorities}

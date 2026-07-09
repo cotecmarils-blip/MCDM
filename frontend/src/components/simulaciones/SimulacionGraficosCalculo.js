@@ -23,7 +23,12 @@ const MADM_LABELS = {
   wpm: 'WPM',
 };
 
-function SimulacionGraficosCalculo({ resultado, soloMatriz = false }) {
+function SimulacionGraficosCalculo({
+  resultado,
+  soloMatriz = false,
+  plotBgColor = '#f7f7ef',
+  onPlotBgColorChange,
+}) {
   const [selectedId, setSelectedId] = useState(null);
   const dimensiones = useMemo(
     () => listDimensionesFromResultado(resultado),
@@ -98,12 +103,14 @@ function SimulacionGraficosCalculo({ resultado, soloMatriz = false }) {
       />
 
       <TradeoffCharts
-        key={`${resultado?.historial_id || 'graficos'}-${effectiveDimIds.join(',')}`}
+        key={`${resultado?.historial_id || 'graficos'}-${effectiveDimIds.join(',')}-${plotBgColor}`}
         puntos={sortedPuntos}
         selectedId={effectiveSelectedId}
         onSelect={setSelectedId}
         chartDimensions={chartData.chartDimensions}
         madmLabel={metodoMadm}
+        plotBgColor={plotBgColor}
+        onPlotBgColorChange={onPlotBgColorChange}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

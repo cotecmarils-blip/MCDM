@@ -37,6 +37,7 @@ function AlternativaViewContent({ alternativa, isDark, onDocumentsChange, onOpen
 
       <dl className="grid grid-cols-1 gap-4">
         <ViewField label="Nombre" value={alternativa.nombre} isDark={isDark} />
+        <ViewField label="Nombre corto (gráficos)" value={alternativa.apodo} isDark={isDark} />
         <ViewField label="Descripción" value={alternativa.descripcion} isDark={isDark} />
         <ViewField label="Referencia" value={alternativa.referencia} isDark={isDark} />
         <ViewField label={COSTO_ROM_LABEL} value={costo} isDark={isDark} />

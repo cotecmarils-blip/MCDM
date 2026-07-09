@@ -29,6 +29,24 @@
     @apply bg-navy-800 text-white hover:bg-navy-900 dark:bg-navy-700 dark:hover:bg-navy-600;
   }
 
+  .math-formula .katex {
+    @apply text-gray-800 dark:text-gray-100;
+    font-size: 0.95em;
+  }
+
+  .math-formula .katex-display {
+    margin: 0.25rem 0;
+  }
+
+  .mop-option-card-formula .katex {
+    font-size: 1.05rem;
+  }
+
+  .mop-option-card-formula .katex-display {
+    margin: 0;
+    text-align: left;
+  }
+
   .btn-accent {
     @apply bg-navy-600 text-white hover:bg-navy-700;
   }

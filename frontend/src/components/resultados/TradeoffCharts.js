@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Plot from 'react-plotly.js';
 import { useTheme } from '../../ThemeContext';
 import { getAlternativaChartLabel, getAlternativaHoverTitle } from '../../utils/alternativaDisplay';
+import SimulacionPlotBgPicker from '../simulaciones/SimulacionPlotBgPicker';
 
 const CHART_FONT = 'Arial, Helvetica, sans-serif';
 const MIN_AXES_2D = 2;
@@ -23,17 +24,17 @@ const MARKER_COLORS_DARK = [
   '#34d399', '#fbbf24', '#fb923c', '#f87171', '#60a5fa', '#a78bfa',
 ];
 
-function buildChartTheme(isDark) {
+function buildChartTheme(isDark, plotBgColor = '#f7f7ef') {
   if (isDark) {
     return {
       paper_bgcolor: 'rgba(15, 23, 42, 0)',
-      plot_bgcolor: '#1e293b',
+      plot_bgcolor: plotBgColor,
       fontColor: '#e2e8f0',
       titleColor: '#f8fafc',
       gridColor: '#475569',
       axisLineColor: '#64748b',
       zeroLineColor: '#64748b',
-      sceneBg: '#0f172a',
+      sceneBg: plotBgColor,
       markerLine: '#f8fafc',
       textColor: '#f8fafc',
       markerColors: MARKER_COLORS_DARK,
@@ -41,13 +42,13 @@ function buildChartTheme(isDark) {
   }
   return {
     paper_bgcolor: 'rgba(255, 255, 255, 0)',
-    plot_bgcolor: '#f4f4f5',
+    plot_bgcolor: plotBgColor,
     fontColor: '#0f172a',
     titleColor: '#0f172a',
     gridColor: '#a1a1aa',
     axisLineColor: '#52525b',
     zeroLineColor: '#71717a',
-    sceneBg: '#e4e4e7',
+    sceneBg: plotBgColor,
     markerLine: '#ffffff',
     textColor: '#0f172a',
     markerColors: MARKER_COLORS_LIGHT,
@@ -198,9 +199,11 @@ function TradeoffCharts({
   onSelect,
   madmLabel = 'MADM',
   chartDimensions = [],
+  plotBgColor = '#f7f7ef',
+  onPlotBgColorChange,
 }) {
   const { isDark } = useTheme();
-  const theme = useMemo(() => buildChartTheme(isDark), [isDark]);
+  const theme = useMemo(() => buildChartTheme(isDark, plotBgColor), [isDark, plotBgColor]);
 
   const axisDims = useMemo(() => chartDimensions || [], [chartDimensions]);
   const axisKeys = axisDims.map((d) => d.key).join('|');
@@ -547,6 +550,11 @@ function TradeoffCharts({
                 ? 'Clic en una barra o punto para seleccionar'
                 : 'Clic en un punto para seleccionar'}
         </p>
+        {onPlotBgColorChange && (
+          <div className="ml-auto">
+            <SimulacionPlotBgPicker plotBgColor={plotBgColor} onChange={onPlotBgColorChange} />
+          </div>
+        )}
       </div>
 
       {effectiveView === 'radar' && canPlotRadar && (
@@ -631,7 +639,7 @@ function TradeoffCharts({
       <div className={chartBoxClass}>
         {effectiveView === 'radar' && canPlotRadar ? (
           <Plot
-            key={`radar-${isDark}-${axisKeys}`}
+            key={`radar-${isDark}-${axisKeys}-${plotBgColor}`}
             data={radarTraces}
             layout={{
               ...commonLayout,
@@ -666,7 +674,7 @@ function TradeoffCharts({
           />
         ) : effectiveView === '2d' && canPlotDecision2d && scatter2dData.length > 0 ? (
           <Plot
-            key={`2d-${isDark}-${axisKeys}-${decision2dRoles.x}-${decision2dRoles.y}-${decision2dRoles.color ?? 'madm'}`}
+            key={`2d-${isDark}-${axisKeys}-${decision2dRoles.x}-${decision2dRoles.y}-${decision2dRoles.color ?? 'madm'}-${plotBgColor}`}
             data={[{
               type: 'scatter',
               mode: 'markers+text',
@@ -715,7 +723,7 @@ function TradeoffCharts({
           </p>
         ) : effectiveView === '2d-dims' && canPlot2dDims && scatter2dData.length > 0 ? (
           <Plot
-            key={`2d-dims-${isDark}-${axisKeys}`}
+            key={`2d-dims-${isDark}-${axisKeys}-${plotBgColor}`}
             data={[{
               type: 'scatter',
               mode: 'markers+text',
@@ -756,7 +764,7 @@ function TradeoffCharts({
           </p>
         ) : effectiveView === ONE_D_VIEWS.BARS_H && canPlot1d ? (
           <Plot
-            key={`1dh-${isDark}`}
+            key={`1dh-${isDark}-${plotBgColor}`}
             data={[{
               type: 'bar',
               orientation: 'h',
@@ -786,7 +794,7 @@ function TradeoffCharts({
           />
         ) : effectiveView === ONE_D_VIEWS.BARS_V && canPlot1d ? (
           <Plot
-            key={`1dv-${isDark}`}
+            key={`1dv-${isDark}-${plotBgColor}`}
             data={[{
               type: 'bar',
               x: plotData.map((p) => p.chartLabel),
@@ -810,7 +818,7 @@ function TradeoffCharts({
           />
         ) : effectiveView === ONE_D_VIEWS.LINE && canPlot1d ? (
           <Plot
-            key={`1dl-${isDark}`}
+            key={`1dl-${isDark}-${plotBgColor}`}
             data={[{
               type: 'scatter',
               mode: 'lines+markers+text',
@@ -843,7 +851,7 @@ function TradeoffCharts({
           />
         ) : effectiveView === ONE_D_VIEWS.DUAL && canPlot1d ? (
           <Plot
-            key={`1dd-${isDark}`}
+            key={`1dd-${isDark}-${plotBgColor}`}
             data={[
               {
                 type: 'bar',
@@ -879,7 +887,7 @@ function TradeoffCharts({
         ) : effectiveView === '3d' && canPlot3d ? (
           <>
             <Plot
-              key={`3d-${isDark}-${axisKeys}`}
+              key={`3d-${isDark}-${axisKeys}-${plotBgColor}`}
               data={[{
                 type: 'scatter3d',
                 mode: 'markers+text',

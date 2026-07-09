@@ -44,6 +44,7 @@ function AlternativaDetailPanel({
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
     nombre: '',
+    apodo: '',
     descripcion: '',
     referencia: '',
     costo: '',
@@ -85,6 +86,7 @@ function AlternativaDetailPanel({
     setExisting(alt);
     setFormData({
       nombre: alt.nombre || '',
+      apodo: alt.apodo || '',
       descripcion: alt.descripcion || '',
       referencia: alt.referencia || '',
       costo: alt.costo ?? '',
@@ -103,6 +105,7 @@ function AlternativaDetailPanel({
       setExisting(null);
       setFormData({
         nombre: '',
+        apodo: '',
         descripcion: '',
         referencia: '',
         costo: '',

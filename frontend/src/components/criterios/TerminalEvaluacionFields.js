@@ -131,6 +131,7 @@ function TerminalEvaluacionFields({
           }}
           disabled={disabled}
           inputClass={inputClass}
+          compact={compact}
         />
       )}
 
