@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from '../ThemeContext';
 import { alternativas } from '../api';
 import AlternativaCard from './AlternativaCard';
@@ -9,11 +9,7 @@ function AlternativasList({ proyectoId, onRefresh, refreshTrigger }) {
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
 
-  useEffect(() => {
-    loadAlternativas();
-  }, [proyectoId, refreshTrigger]);
-
-  const loadAlternativas = async () => {
+  const loadAlternativas = useCallback(async () => {
     try {
       setLoading(true);
       const response = await alternativas.getByProyecto(proyectoId);
@@ -23,7 +19,11 @@ function AlternativasList({ proyectoId, onRefresh, refreshTrigger }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [proyectoId]);
+
+  useEffect(() => {
+    loadAlternativas();
+  }, [loadAlternativas, refreshTrigger]);
 
   const handleDelete = async (id) => {
     if (window.confirm('¿Estás seguro de eliminar esta alternativa?')) {

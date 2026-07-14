@@ -71,7 +71,10 @@ function SimulacionWizard({
 }) {
   const [stepIndex, setStepIndex] = React.useState(0);
   const currentStep = WIZARD_STEPS[stepIndex];
-  const dimensiones = opcionesMeta?.dimensiones || [];
+  const dimensiones = useMemo(
+    () => opcionesMeta?.dimensiones || [],
+    [opcionesMeta?.dimensiones],
+  );
   const dimensionesActivas = useMemo(
     () => dimensionesSeleccionadas(dimensiones, calcConfig),
     [dimensiones, calcConfig],

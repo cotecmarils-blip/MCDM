@@ -21,7 +21,10 @@ const MADM_LABELS = {
 
 function SimulacionResumenGlobal({ resultado }) {
   const [showMatriz, setShowMatriz] = useState(false);
-  const alternativas = resultado?.alternativas || [];
+  const alternativas = useMemo(
+    () => resultado?.alternativas || [],
+    [resultado?.alternativas],
+  );
   const activas = alternativas.filter((a) => !a.excluida_pareto);
   const metodoMadm = MADM_LABELS[resultado?.opciones_calculo?.metodo_madm]
     || resultado?.opciones_calculo?.metodo_madm

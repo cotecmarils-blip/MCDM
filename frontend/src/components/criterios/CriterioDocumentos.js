@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { documentosCriterio, MEDIA_BASE_URL } from '../../api';
-import { CRITERIO_LEVELS, getApiLevel } from './constants';
+import { getApiLevel } from './constants';
 
 function resolveArchivoUrl(archivo) {
   if (!archivo) return '#';
@@ -14,7 +14,7 @@ function CriterioDocumentos({ level, entityId, onRefresh, readOnly = false }) {
   const [nombre, setNombre] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
 
-  const loadDocumentos = async () => {
+  const loadDocumentos = useCallback(async () => {
     try {
       let response;
       const apiLevel = getApiLevel(level);
@@ -29,11 +29,11 @@ function CriterioDocumentos({ level, entityId, onRefresh, readOnly = false }) {
     } catch (err) {
       console.error('Error cargando documentos:', err);
     }
-  };
+  }, [entityId, level]);
 
   useEffect(() => {
     loadDocumentos();
-  }, [entityId, level]);
+  }, [loadDocumentos]);
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];

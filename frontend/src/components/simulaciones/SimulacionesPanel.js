@@ -468,7 +468,7 @@ function SimulacionesPanel({ proyectoId, canWrite = true }) {
     } finally {
       setLoading(false);
     }
-  }, [proyectoId, loadHistorial, calcConfig, buildOpcionesPayload, opcionesMeta?.dimensiones?.length]);
+  }, [proyectoId, loadHistorial, calcConfig, buildOpcionesPayload, opcionesMeta?.dimensiones]);
 
   const handleCancelarCalculo = useCallback(() => {
     setWizardOpen(false);

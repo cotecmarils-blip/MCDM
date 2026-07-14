@@ -1,6 +1,5 @@
 import { validatePesosDimensionesPercent } from '../../utils/pesoUtils';
 import {
-  DEFAULT_PARETO_EPSILON_DISPLAY,
   formatParetoEpsilonForInput,
   parseParetoEpsilonInput,
   PARETO_EPSILON_VALIDATION_MSG,
