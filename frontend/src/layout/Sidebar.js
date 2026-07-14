@@ -100,21 +100,21 @@ function Sidebar({
             className="block min-w-0 flex-1 lg:flex-none mx-auto lg:mx-0"
             title="Volver a proyectos"
           >
-            <div className="flex items-center justify-center gap-3 lg:justify-start lg:sidebar-expanded:gap-3">
+            <div className="flex items-center justify-center gap-3 lg:justify-start lg:sidebar-expanded:gap-3 duration-200">
               <img
-                src={`${process.env.PUBLIC_URL}/Logo%20ENAP.svg`}
+                src={`${process.env.PUBLIC_URL}/Logo_ENAP.png`}
                 alt="ENAP"
-                className="hidden h-8 w-auto max-h-8 max-w-[2.75rem] object-contain brightness-0 opacity-75 dark:invert dark:opacity-85 lg:sidebar-expanded:block 2xl:block"
+                className="hidden h-8 w-auto max-h-8 max-w-[2.75rem] object-contain opacity-90 dark:brightness-0 dark:invert dark:opacity-90 lg:sidebar-expanded:block 2xl:block"
               />
               <img
-                src={`${process.env.PUBLIC_URL}/CotecmarLogo.svg`}
+                src={`${process.env.PUBLIC_URL}/CotecmarLogo.png`}
                 alt="Cotecmar"
-                className="h-8 w-auto max-h-8 max-w-[7.5rem] object-contain brightness-0 opacity-75 dark:invert dark:opacity-85 mx-auto lg:mx-0 duration-200"
+                className="h-8 w-auto max-h-8 max-w-[7.5rem] object-contain opacity-90 dark:brightness-0 dark:invert dark:opacity-90 mx-auto lg:mx-0"
               />
               <img
                 src={`${process.env.PUBLIC_URL}/Logo_CUC.png`}
                 alt="Universidad de la Costa"
-                className="hidden h-8 w-auto max-h-8 max-w-[5.5rem] object-contain brightness-0 opacity-75 dark:invert dark:opacity-85 lg:sidebar-expanded:block 2xl:block"
+                className="hidden h-8 w-auto max-h-8 max-w-[5.5rem] object-contain opacity-90 lg:sidebar-expanded:block 2xl:block"
               />
             </div>
           </Link>

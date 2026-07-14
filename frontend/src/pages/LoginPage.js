@@ -4,12 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { API_ROOT } from '../api';
 import { useTheme } from '../ThemeContext';
 import ThemeToggle from '../components/ThemeToggle';
+import BrandLogos from '../components/BrandLogos';
 import { consumeStoredAuthMessage } from '../utils/authSession';
-
-const LOGO_ENAP = `${process.env.PUBLIC_URL}/Logo%20ENAP.svg`;
-const LOGO_COTECMAR = `${process.env.PUBLIC_URL}/CotecmarLogo.svg`;
-const LOGO_COTECMAR_WHITE = `${process.env.PUBLIC_URL}/CotecmarLogo_white.svg`;
-const LOGO_CUC = `${process.env.PUBLIC_URL}/Logo_CUC.png`;
 
 function LoginPage() {
   const { isAuthenticated, loading, login, authError, clearAuthError } = useAuth();
@@ -102,25 +98,7 @@ function LoginPage() {
         />
 
         <div className="relative z-10 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4 sm:gap-5">
-            <img
-              src={LOGO_ENAP}
-              alt="ENAP"
-              className="h-10 w-auto max-h-10 max-w-[3.5rem] object-contain brightness-0 invert opacity-90"
-            />
-            <span className="hidden h-7 w-px bg-white/20 sm:block" aria-hidden />
-            <img
-              src={LOGO_COTECMAR_WHITE}
-              alt="Cotecmar"
-              className="h-10 w-auto max-h-10 max-w-[8rem] object-contain opacity-90"
-            />
-            <span className="hidden h-7 w-px bg-white/20 sm:block" aria-hidden />
-            <img
-              src={LOGO_CUC}
-              alt="Universidad de la Costa"
-              className="h-10 w-auto max-h-10 max-w-[6.5rem] object-contain brightness-0 invert opacity-90"
-            />
-          </div>
+          <BrandLogos tone="brand" size="md" className="justify-start" />
           <div className="lg:hidden">
             <ThemeToggle />
           </div>
@@ -155,25 +133,7 @@ function LoginPage() {
 
         <div className="w-full max-w-md">
           <div className="mb-8 lg:hidden text-center">
-            <div className="flex items-center justify-center gap-3">
-              <img
-                src={LOGO_ENAP}
-                alt="ENAP"
-                className="h-8 w-auto max-h-8 max-w-[2.75rem] object-contain brightness-0 opacity-75 dark:invert dark:opacity-85"
-              />
-              <img
-                src={isDark ? LOGO_COTECMAR_WHITE : LOGO_COTECMAR}
-                alt="Cotecmar"
-                className={`h-8 w-auto max-h-8 max-w-[7rem] object-contain ${
-                  isDark ? 'opacity-85' : 'brightness-0 opacity-75'
-                }`}
-              />
-              <img
-                src={LOGO_CUC}
-                alt="Universidad de la Costa"
-                className="h-8 w-auto max-h-8 max-w-[5.5rem] object-contain brightness-0 opacity-75 dark:invert dark:opacity-85"
-              />
-            </div>
+            <BrandLogos tone={isDark ? 'dark' : 'light'} size="sm" />
             <h2 className="mt-4 text-2xl font-bold text-navy-800 dark:text-white">HATD</h2>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
               Herramienta Analítica para Toma de Decisiones
