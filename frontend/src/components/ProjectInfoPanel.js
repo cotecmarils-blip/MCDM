@@ -6,7 +6,7 @@ function ProjectInfoPanel({ proyecto, proyectoId }) {
   const requisitosCount = proyecto?.requisitos?.length || 0;
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 w-full">
       <div className="flex flex-wrap justify-between items-start gap-3">
         <div>
           <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Información del proyecto</h2>

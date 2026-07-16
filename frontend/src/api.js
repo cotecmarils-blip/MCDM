@@ -225,6 +225,10 @@ export const alternativas = {
   create: (data) => api.post('/alternativas/', data),
   update: (id, data) => api.patch(`/alternativas/${id}/`, data),
   delete: (id) => api.delete(`/alternativas/${id}/`),
+  exportWord: (proyectoId) =>
+    api.get(`/proyectos/${proyectoId}/informe-alternativas-word/`, {
+      responseType: 'blob',
+    }),
 };
 
 export const capacidades = {

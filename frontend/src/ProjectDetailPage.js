@@ -67,7 +67,11 @@ function ProjectDetailPage() {
   const renderMainContent = () => {
     switch (activeSection) {
       case 'info':
-        return <ProjectInfoPanel proyecto={proyecto} proyectoId={id} />;
+        return (
+          <div className="flex-1 min-h-0 overflow-y-auto pb-4">
+            <ProjectInfoPanel proyecto={proyecto} proyectoId={id} />
+          </div>
+        );
       case 'alternativas':
         return (
           <AlternativasPanel proyectoId={id} />

@@ -776,6 +776,28 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         return response
 
+    @action(detail=True, methods=['get'], url_path='informe-alternativas-word')
+    def informe_alternativas_word(self, request, pk=None):
+        """Word de las alternativas del proyecto (fichas con fotos y anexos)."""
+        from django.http import HttpResponse
+
+        from .informe_alternativas_word_service import (
+            build_informe_alternativas_docx,
+        )
+
+        proyecto = self.get_object()
+        content = build_informe_alternativas_docx(proyecto)
+        filename = f'alternativas-proyecto-{proyecto.id}.docx'
+        response = HttpResponse(
+            content,
+            content_type=(
+                'application/vnd.openxmlformats-officedocument.'
+                'wordprocessingml.document'
+            ),
+        )
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+
     @action(detail=True, methods=['get'], url_path='informe-proyecto-word')
     def informe_proyecto_word(self, request, pk=None):
         """Word integral de proyecto: alternativas, árboles/pesos y evaluaciones."""
