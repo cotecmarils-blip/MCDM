@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { resolveMediaUrl } from '../utils/media';
+import ImportarConfigProyectoModal from './ImportarConfigProyectoModal';
 
-function ProjectInfoPanel({ proyecto, proyectoId }) {
+function ProjectInfoPanel({ proyecto, proyectoId, canWrite = false, onConfigImported }) {
   const requisitosCount = proyecto?.requisitos?.length || 0;
+  const [importOpen, setImportOpen] = useState(false);
 
   return (
     <div className="space-y-6 w-full">
@@ -14,9 +16,20 @@ function ProjectInfoPanel({ proyecto, proyectoId }) {
             Aquí ves el resumen del proyecto y accedes a su edición general.
           </p>
         </div>
-        <Link to={`/proyecto/${proyectoId}/editar`} className="btn-sm bg-navy-800 text-white hover:bg-navy-700">
-          Editar proyecto
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          {canWrite && (
+            <button
+              type="button"
+              onClick={() => setImportOpen(true)}
+              className="btn-sm border border-navy-600 text-navy-800 dark:text-navy-200 hover:bg-navy-50 dark:hover:bg-navy-900"
+            >
+              Importar configuración
+            </button>
+          )}
+          <Link to={`/proyecto/${proyectoId}/editar`} className="btn-sm bg-navy-800 text-white hover:bg-navy-700">
+            Editar proyecto
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[18rem_minmax(0,1fr)] gap-6 items-start">
@@ -56,6 +69,26 @@ function ProjectInfoPanel({ proyecto, proyectoId }) {
             </div>
           </div>
 
+          {canWrite && (
+            <div className="rounded-2xl border border-dashed border-navy-300 dark:border-navy-700 bg-navy-50/70 dark:bg-navy-950/30 p-5 space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-navy-800 dark:text-navy-200">
+                Copiar desde otro proyecto
+              </h3>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-6">
+                En lugar de importar dimensión por dimensión, puede traer de golpe las
+                dimensiones, escenarios y alternativas que elija (y opcionalmente la matriz
+                de evaluación), revisando antes la ficha de cada alternativa.
+              </p>
+              <button
+                type="button"
+                onClick={() => setImportOpen(true)}
+                className="btn-sm bg-navy-800 text-white hover:bg-navy-700"
+              >
+                Abrir importador
+              </button>
+            </div>
+          )}
+
           <div className="rounded-2xl border border-dashed border-navy-300 dark:border-navy-700 bg-navy-50/70 dark:bg-navy-950/30 p-5 space-y-3">
             <h3 className="text-sm font-bold uppercase tracking-wide text-navy-800 dark:text-navy-200">
               Requisitos
@@ -68,6 +101,16 @@ function ProjectInfoPanel({ proyecto, proyectoId }) {
           </div>
         </div>
       </div>
+
+      <ImportarConfigProyectoModal
+        open={importOpen}
+        proyectoId={proyectoId}
+        canWrite={canWrite}
+        onClose={() => setImportOpen(false)}
+        onImported={() => {
+          onConfigImported?.();
+        }}
+      />
     </div>
   );
 }

@@ -178,6 +178,12 @@ export const proyectos = {
     }),
   catalogoDimensiones: (id) => api.get(`/proyectos/${id}/catalogo-dimensiones/`),
   importarDimension: (id, data) => api.post(`/proyectos/${id}/importar-dimension/`, data),
+  catalogoConfigProyecto: (id) => api.get(`/proyectos/${id}/catalogo-config-proyecto/`),
+  configPreview: (id, fuenteProyectoId) =>
+    api.get(`/proyectos/${id}/config-preview/`, {
+      params: { fuente: fuenteProyectoId },
+    }),
+  importarConfig: (id, data) => api.post(`/proyectos/${id}/importar-config/`, data),
   exportArbol: (id, omoeId) =>
     api.get(`/proyectos/${id}/export-arbol/`, {
       params: omoeId ? { omoe: omoeId } : {},

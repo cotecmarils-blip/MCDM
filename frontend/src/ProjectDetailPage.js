@@ -69,7 +69,12 @@ function ProjectDetailPage() {
       case 'info':
         return (
           <div className="flex-1 min-h-0 overflow-y-auto pb-4">
-            <ProjectInfoPanel proyecto={proyecto} proyectoId={id} />
+            <ProjectInfoPanel
+              proyecto={proyecto}
+              proyectoId={id}
+              canWrite={canWrite}
+              onConfigImported={loadProyecto}
+            />
           </div>
         );
       case 'alternativas':

@@ -249,6 +249,8 @@ def clonar_dimension_en_proyecto(
         'fuente_omoe_id': fuente_omoe.id,
         'fuente_proyecto_id': fuente_omoe.proyecto_id,
         'escenario_estandar_id': esc.id,
+        # src_nodo_id → dest_nodo_id (para remapeo de escenarios / valores)
+        'nodo_map': {src_id: dest.id for src_id, dest in id_map.items()},
     }
 
 

@@ -380,6 +380,145 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
         )
         return Response({'items': items, 'count': len(items)})
 
+    @action(detail=True, methods=['get'], url_path='catalogo-config-proyecto')
+    def catalogo_config_proyecto(self, request, pk=None):
+        """Lista proyectos accesibles para importar configuración completa."""
+        proyecto = self.get_object()
+        if is_global_admin(request.user):
+            from .models import Proyecto as ProyectoModel
+            ids = list(ProyectoModel.objects.values_list('id', flat=True))
+        else:
+            ids = list(user_proyecto_ids(request.user))
+        from .proyecto_config_clone_service import listar_catalogo_proyectos_config
+
+        items = listar_catalogo_proyectos_config(
+            proyecto_ids=ids,
+            excluir_proyecto_id=proyecto.id,
+        )
+        return Response({'items': items, 'count': len(items)})
+
+    @action(detail=True, methods=['get'], url_path='config-preview')
+    def config_preview(self, request, pk=None):
+        """Vista previa de la configuración de un proyecto fuente (query: fuente)."""
+        from .models import Proyecto as ProyectoModel
+        from .proyecto_config_clone_service import preview_config_proyecto
+
+        self.get_object()  # valida acceso al proyecto destino
+        fuente_id = request.query_params.get('fuente') or request.query_params.get(
+            'fuente_proyecto_id'
+        )
+        try:
+            fuente_id = int(fuente_id)
+        except (TypeError, ValueError):
+            return Response(
+                {'fuente': ['Indique el id del proyecto origen (?fuente=).']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        fuente = ProyectoModel.objects.filter(pk=fuente_id).first()
+        if fuente is None:
+            return Response(
+                {'detail': 'Proyecto origen no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if not can_read_proyecto(request.user, fuente.id):
+            return Response(
+                {'detail': 'Sin permiso para leer el proyecto origen.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return Response(preview_config_proyecto(fuente))
+
+    @action(detail=True, methods=['post'], url_path='importar-config')
+    def importar_config(self, request, pk=None):
+        """
+        Importa configuración selectiva desde otro proyecto:
+        dimensiones, escenarios, alternativas y opcionalmente valores de evaluación.
+        """
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        from .models import Proyecto as ProyectoModel
+        from .proyecto_config_clone_service import importar_config_proyecto
+
+        destino = self.get_object()
+        if not can_write_resource(request.user, destino, 'omoe'):
+            return Response(
+                {'detail': 'Sin permiso para importar configuración en este proyecto.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        fuente_id = request.data.get('fuente_proyecto_id')
+        try:
+            fuente_id = int(fuente_id)
+        except (TypeError, ValueError):
+            return Response(
+                {'fuente_proyecto_id': ['Indique el proyecto origen.']},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        fuente = ProyectoModel.objects.filter(pk=fuente_id).first()
+        if fuente is None:
+            return Response(
+                {'detail': 'Proyecto origen no encontrado.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        if not can_read_proyecto(request.user, fuente.id):
+            return Response(
+                {'detail': 'Sin permiso para leer el proyecto origen.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        def _parse_id_list(raw, field_name):
+            if raw is None:
+                return None
+            if raw == 'all' or raw is True:
+                return 'all'
+            if not isinstance(raw, (list, tuple)):
+                raise ValueError(field_name)
+            out = []
+            for item in raw:
+                out.append(int(item))
+            return out
+
+        try:
+            omoe_ids = _parse_id_list(request.data.get('omoe_ids'), 'omoe_ids')
+            escenario_ids = _parse_id_list(request.data.get('escenario_ids'), 'escenario_ids')
+            alternativa_ids = _parse_id_list(
+                request.data.get('alternativa_ids'), 'alternativa_ids',
+            )
+        except (TypeError, ValueError):
+            return Response(
+                {'detail': 'omoe_ids, escenario_ids y alternativa_ids deben ser listas de ids o "all".'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        incluir_valores = bool(request.data.get('incluir_valores'))
+
+        # Resolver "all"
+        if omoe_ids == 'all':
+            omoe_ids = list(fuente.omoes.values_list('id', flat=True))
+        if escenario_ids == 'all':
+            escenario_ids = list(fuente.escenarios.values_list('id', flat=True))
+        if alternativa_ids == 'all':
+            alternativa_ids = list(fuente.alternativas.values_list('id', flat=True))
+
+        # Sin dimensiones: lista vacía explícita; None = todas (si el cliente omite el campo)
+        if 'omoe_ids' not in request.data and omoe_ids is None:
+            omoe_ids = list(fuente.omoes.values_list('id', flat=True))
+
+        try:
+            result = importar_config_proyecto(
+                fuente,
+                destino,
+                omoe_ids=omoe_ids if omoe_ids is not None else [],
+                escenario_ids=escenario_ids,
+                alternativa_ids=alternativa_ids,
+                incluir_valores=incluir_valores,
+            )
+        except DjangoValidationError as exc:
+            msg = exc.messages[0] if getattr(exc, 'messages', None) else str(exc)
+            return Response({'detail': msg}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(result, status=status.HTTP_201_CREATED)
+
     @action(detail=True, methods=['post'], url_path='importar-dimension')
     def importar_dimension(self, request, pk=None):
         """Importa (clona) una dimensión y su árbol micro desde otra (o la misma) proyectada."""
@@ -426,10 +565,15 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
             msg = exc.messages[0] if getattr(exc, 'messages', None) else str(exc)
             return Response({'detail': msg}, status=status.HTTP_400_BAD_REQUEST)
 
+        # No filtrar campos internos no serializables en la respuesta pública.
+        public = {
+            k: v for k, v in result.items()
+            if k not in ('nodo_map',)
+        }
         dest = Omoe.objects.prefetch_related(*OMOE_TREE_PREFETCH).get(pk=result['omoe_id'])
         return Response(
             {
-                **result,
+                **public,
                 'omoe': OmoeSerializer(dest).data,
             },
             status=status.HTTP_201_CREATED,
