@@ -1353,36 +1353,45 @@ def _render_concept_map_png(
         _display_sibling_weights(nodes, config_map) if include_weights else {}
     )
 
-    scale = 2
+    scale = 3  # Más resolución: al escalar a la página la letra sigue legible.
     n_nodes = max(len(nodes), 1)
     # Densidad adaptativa: con muchos nodos el PNG se compacta para no
-    # generar figuras de más de una página de alto.
+    # generar figuras de más de una página de alto. La fuente baja menos
+    # que el espaciado (prioridad: texto legible).
     if n_nodes <= 20:
         density = 1.0
+        font_density = 1.0
     elif n_nodes <= 50:
         density = 0.82
+        font_density = 0.92
     elif n_nodes <= 90:
         density = 0.68
+        font_density = 0.84
     else:
         density = 0.55
+        font_density = 0.78
 
-    top = int(18 * density) + 4
-    margin = int(18 * density) + 6
-    node_gap_y = max(3.0, 8.0 * density)
-    col_gap = max(36.0, 56.0 * density)
-    pad_x = max(6.0, 12.0 * density)
-    pad_y = max(4.0, 8.0 * density)
-    max_text_w = max(90.0, 130.0 * density)
-    label_cap = max(120.0, 180.0 * density)
+    top = int(14 * density) + 4
+    margin = int(14 * density) + 6
+    node_gap_y = max(4.0, 7.0 * density)
+    col_gap = max(28.0, 44.0 * density)
+    # Padding justo alrededor del texto: las cajas no deben verse vacías.
+    pad_x = max(8.0, 10.0 * density)
+    pad_y = max(5.0, 6.0 * density)
+    # Cap de ancho de texto: nombres largos envuelven; un poco más ancho
+    # que antes para no partir palabras cortas a la mitad (p. ej. Maneuverability).
+    max_text_w = max(110.0, 135.0 * density)
+    label_cap = max(120.0, 150.0 * density)
 
-    font_level = _report_font(max(9, int(13 * density)) * scale, bold=True)
-    font_node = _report_font(max(9, int(13 * density)) * scale, bold=True)
-    font_root = _report_font(max(11, int(15 * density)) * scale, bold=True)
-    font_root_sub = _report_font(max(9, int(12 * density)) * scale, bold=True)
+    # Fuentes grandes: a 16.5 cm de ancho de página esto ≈ 16–18 pt legibles.
+    font_level = _report_font(max(14, int(17 * font_density)) * scale, bold=True)
+    font_node = _report_font(max(18, int(22 * font_density)) * scale, bold=True)
+    font_root = _report_font(max(20, int(26 * font_density)) * scale, bold=True)
+    font_root_sub = _report_font(max(13, int(15 * font_density)) * scale, bold=True)
 
     def _line_h(font) -> float:
         bbox = font.getbbox('Ághjy')
-        return (bbox[3] - bbox[1]) / scale + 4
+        return (bbox[3] - bbox[1]) / scale + 2
 
     def _break_long_word(word: str, font, cap: float) -> list[str]:
         """Parte por caracteres una palabra que no cabe en `cap` (sin espacios).
@@ -1453,10 +1462,10 @@ def _render_concept_map_png(
         )
 
     root_name = omoe.nombre_modelo or omoe.codigo or f'Dimensión #{omoe.id}'
-    root_lines = _wrap(root_name, font_root, 180)
+    root_lines = _wrap(root_name, font_root, 220)
     root_text_w = max((font_root.getlength(line) / scale for line in root_lines), default=100)
-    root_w = max(150.0, root_text_w + 24)
-    root_h = max(48.0, (len(root_lines) + 1) * root_line_h + 12)
+    root_w = max(160.0, root_text_w + 2 * pad_x + 8)
+    root_h = max(44.0, (len(root_lines) + 1) * root_line_h + 2 * pad_y)
 
     # Etiquetas de nivel (encabezado de cada columna, incl. la dimensión).
     level_label_lines: dict[int, list[str]] = {0: _wrap('DIMENSIÓN', font_level, label_cap)}
@@ -1470,8 +1479,11 @@ def _render_concept_map_png(
     header_h = header_lines_max * level_line_h + 12
     content_top = top + header_h + 14
 
-    # Ancho UNIFORME por nivel: se toma la caja más ancha de cada columna.
+    # Ancho de columna = el más ancho del nivel (para centrar la columna);
+    # cada caja usa su propio ancho (así «Range» no queda en un rectángulo
+    # vacío del tamaño de «Rescue and administrative…»).
     col_w: dict[int, float] = {0: root_w}
+    max_col_w = max_text_w + 2 * pad_x + 8
     for level in range(1, max_level + 1):
         widths = [
             natural_text_w[n.id] + 2 * pad_x for n in nodes
@@ -1481,20 +1493,25 @@ def _render_concept_map_png(
             (font_level.getlength(line) / scale for line in level_label_lines.get(level, [])),
             default=90,
         )
-        col_w[level] = max(max(widths, default=110.0), label_w + 20, 96.0)
+        raw = max(max(widths, default=120.0), label_w + 16, 108.0)
+        col_w[level] = min(raw, max_col_w)
 
-    # 2ª pasada: todas las cajas del nivel usan el mismo ancho; el texto se
-    # reajusta a ese ancho y se recalcula el alto.
+    # 2ª pasada: caja ajustada al texto de cada nodo (con tope de columna).
     node_lines: dict[int, list[str]] = {}
     node_w: dict[int, float] = {}
     node_h: dict[int, float] = {}
     for n in nodes:
         level = node_level[n.id]
-        box_w = col_w[level]
-        lines = _node_text_lines(n, box_w - 2 * pad_x)
+        text_cap = min(max_text_w, col_w[level] - 2 * pad_x)
+        lines = _node_text_lines(n, text_cap)
+        text_w = max(
+            (font_node.getlength(line) / scale for line in lines),
+            default=40,
+        )
+        box_w = min(max(text_w + 2 * pad_x, 72.0), col_w[level])
         node_lines[n.id] = lines
         node_w[n.id] = box_w
-        node_h[n.id] = max(22.0, len(lines) * node_line_h + 2 * pad_y)
+        node_h[n.id] = max(28.0, len(lines) * node_line_h + 2 * pad_y)
 
     # Posición X (centro) de cada columna, de izquierda a derecha.
     col_center_x: dict[int, float] = {}
@@ -1640,7 +1657,7 @@ def _render_concept_map_png(
         ('#d4e6f7', '#b3d0ef', '#334155'),
         ('#eaf3fb', '#c8dff2', '#475569'),
     ]
-    weight_palette = ('#7eb3e0', '#5a96c8', '#1e3a5f')
+    weight_palette = ('#5b93c9', '#3f78b0', '#ffffff')
     for nodo in nodes:
         cx, cy = positions[nodo.id]
         level = level_index.get(_node_level_orden(nodo), 1)
@@ -1678,7 +1695,7 @@ def _render_concept_map_png(
 
 def _begin_map_block(doc: Document, estimated_height_cm: float) -> None:
     """Agrupa mapas pequeños en una página y salta solo cuando no caben."""
-    usable_height_cm = 21.0
+    usable_height_cm = 24.0
     used_height_cm = getattr(doc, '_report_map_page_used_cm', None)
     if used_height_cm is None:
         # La primera página de mapas ya trae título de sección y texto introductorio.
@@ -1708,33 +1725,17 @@ def _concept_map_picture_layout(
         config_map=config_map,
         include_weights=include_weights,
     )
-    # Bloque en tope de página: título + figura. Preferimos texto legible
-    # frente a forzar que un árbol alto quepa en una sola página (eso
-    # reducía el ancho y dejaba los nombres aplastados / ilegibles).
-    max_w_cm = 16.0
-    max_h_cm = 16.5
-    min_readable_w_cm = 11.0
-    render_scale = 2
-    layout_dpi = 96
+    # Siempre el ancho completo de página: achicar por altura era justo lo
+    # que dejaba la letra ilegible (cajas grandes, texto diminuto). Un
+    # mapa alto puede ocupar más de una página; eso es preferible.
+    max_w_cm = 16.5
+    render_scale = 3
     with Image.open(picture) as img:
         px_w, px_h = img.size
     picture.seek(0)
     aspect = (px_h / px_w) if px_w else 1.0
-
-    logical_width_px = px_w / render_scale
-    natural_width_cm = logical_width_px / layout_dpi * 2.54
-    active_node_count = len(_active_concept_nodes(nodos, config_map))
-    content_width_cap_cm = min(max_w_cm, 9.0 + min(active_node_count, 35) * 0.2)
-    width_cm = min(content_width_cap_cm, natural_width_cm, max_w_cm)
+    width_cm = max_w_cm
     height_cm = width_cm * aspect
-    if height_cm > max_h_cm:
-        shrunk_w = max_h_cm / aspect
-        if shrunk_w >= min_readable_w_cm:
-            width_cm = shrunk_w
-            height_cm = max_h_cm
-        # Si achicar por altura dejaría el texto ilegible, mantenemos el
-        # ancho y dejamos que el bloque ocupe más alto / salte de página.
-
     return picture, width_cm, height_cm
 
 
