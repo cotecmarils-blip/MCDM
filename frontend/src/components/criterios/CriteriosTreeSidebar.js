@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   CRITERIO_LEVELS,
   LEVEL_LABELS_SHORT,
@@ -10,6 +10,7 @@ import { getNodeChildren } from './treeUtils';
 import { effectiveOmoeRama, getRamaMeta } from './ramaContext';
 import { canAddChildNode } from './nivelArbolRules';
 import { hasNodePendingData } from './conceptMapUtils';
+import ExportablesDropdown from '../evaluacion/ExportablesDropdown';
 
 const INDENT_PX = 4;
 
@@ -323,6 +324,32 @@ function CriteriosTreeSidebar({
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const [reordering, setReordering] = useState(false);
 
+  const toolsMenuItems = useMemo(() => {
+    const items = [
+      {
+        key: 'importar',
+        label: 'Importar árbol desde proyecto',
+        description: 'Trae una dimensión o árbol desde otro proyecto.',
+        onClick: onImportDimension,
+      },
+    ];
+    if (onManageBackups) {
+      items.push({
+        key: 'backups',
+        label: 'Copias de seguridad / JSON',
+        description: 'Respaldos e importación/exportación del árbol.',
+        onClick: onManageBackups,
+      });
+    }
+    items.push({
+      key: 'niveles',
+      label: 'Configurar niveles del árbol',
+      description: 'Define los tipos de nivel por rama de evaluación.',
+      onClick: onConfigureNiveles,
+    });
+    return items;
+  }, [onImportDimension, onManageBackups, onConfigureNiveles]);
+
   const toggleExpand = (key) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
@@ -364,29 +391,12 @@ function CriteriosTreeSidebar({
         >
           + Nueva dimensión
         </button>
-        <button
-          type="button"
-          onClick={onImportDimension}
-          className="btn w-full border-gray-200 dark:border-gray-700/60 text-sm"
-        >
-          Importar árbol desde proyecto
-        </button>
-        {onManageBackups && (
-          <button
-            type="button"
-            onClick={onManageBackups}
-            className="btn w-full border-gray-200 dark:border-gray-700/60 text-sm"
-          >
-            Copias de seguridad / JSON
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={onConfigureNiveles}
-          className="btn w-full border-gray-200 dark:border-gray-700/60 text-sm"
-        >
-          Configurar niveles del árbol
-        </button>
+        <ExportablesDropdown
+          label="Más opciones"
+          items={toolsMenuItems}
+          fullWidth
+          buttonClassName="btn border-gray-200 dark:border-gray-700/60 text-sm"
+        />
       </div>
 
       <div className="flex-1 overflow-y-auto p-2">

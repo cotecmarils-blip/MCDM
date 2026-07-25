@@ -22,7 +22,13 @@ const MENU_WIDTH = 264;
  * el menú se ancla al botón vía portal y se recoloca para no salirse de
  * la pantalla (se abre hacia arriba/abajo y se ajusta a izquierda/derecha).
  */
-function ExportablesDropdown({ label = 'Exportables', items = [], disabled = false }) {
+function ExportablesDropdown({
+  label = 'Exportables',
+  items = [],
+  disabled = false,
+  fullWidth = false,
+  buttonClassName = 'btn btn-primary text-sm py-1.5 px-3',
+}) {
   const [open, setOpen] = useState(false);
   const [menuStyle, setMenuStyle] = useState(null);
   const rootRef = useRef(null);
@@ -137,13 +143,13 @@ function ExportablesDropdown({ label = 'Exportables', items = [], disabled = fal
       : null;
 
   return (
-    <div className="inline-flex shrink-0" ref={rootRef}>
+    <div className={`${fullWidth ? 'block w-full' : 'inline-flex shrink-0'}`} ref={rootRef}>
       <button
         ref={buttonRef}
         type="button"
         onClick={() => !disabled && setOpen((v) => !v)}
         disabled={disabled}
-        className="btn btn-primary text-sm py-1.5 px-3 inline-flex items-center gap-1.5 disabled:opacity-50"
+        className={`${buttonClassName} inline-flex items-center ${fullWidth ? 'justify-between w-full' : ''} gap-1.5 disabled:opacity-50`}
         aria-expanded={open}
         aria-haspopup="menu"
       >
