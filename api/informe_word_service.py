@@ -1268,16 +1268,30 @@ def _cfg_value(config_map: dict[int, Any] | None, nodo: NodoArbol, field: str):
 
 
 def _report_font(size: int, *, bold: bool = False):
-    names = (
-        'DejaVuSans-Bold.ttf' if bold else 'DejaVuSans.ttf',
+    filename = 'DejaVuSans-Bold.ttf' if bold else 'DejaVuSans.ttf'
+    candidates = []
+    # Matplotlib forma parte de requirements y distribuye DejaVu dentro del
+    # paquete. Usar esa ruta evita depender de las fuentes del sistema:
+    # Windows local sí encontraba DejaVu/Arial, pero Railway Linux caía a la
+    # fuente bitmap por defecto, que ignora el tamaño solicitado.
+    try:
+        from matplotlib import get_data_path
+
+        candidates.append(Path(get_data_path()) / 'fonts' / 'ttf' / filename)
+    except (ImportError, OSError):
+        pass
+    candidates.extend((
+        filename,
         'arialbd.ttf' if bold else 'arial.ttf',
-    )
-    for name in names:
+    ))
+    for candidate in candidates:
         try:
-            return ImageFont.truetype(name, size=size)
+            return ImageFont.truetype(str(candidate), size=size)
         except OSError:
             continue
-    return ImageFont.load_default()
+    # Pillow >= 10 permite escalar su fuente incluida. Aunque Matplotlib no
+    # estuviera disponible, nunca volver a una bitmap fija diminuta.
+    return ImageFont.load_default(size=size)
 
 
 def _active_concept_nodes(

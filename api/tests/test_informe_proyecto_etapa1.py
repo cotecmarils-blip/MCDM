@@ -5,11 +5,17 @@ from django.test import SimpleTestCase
 from api.informe_word_service import (
     _display_sibling_weights,
     _peso_rows_for_escenario,
+    _report_font,
     _terminal_funcion_text,
 )
 
 
 class InformeProyectoEtapa1Tests(SimpleTestCase):
+    def test_report_font_respeta_tamano_sin_fuentes_del_sistema(self):
+        font = _report_font(42, bold=True)
+        self.assertEqual(font.size, 42)
+        self.assertIn('DejaVuSans-Bold.ttf', str(getattr(font, 'path', '')))
+
     def test_tabla_pesos_incluye_todos_los_niveles_y_peso_acumulado(self):
         root = SimpleNamespace(
             id=1,
