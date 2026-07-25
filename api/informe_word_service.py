@@ -1361,14 +1361,14 @@ def _render_concept_map_png(
     # se define en «em» de la fuente de nodo: subir la fuente sin más solo
     # agranda el lienzo y el texto termina igual (o peor, si el alto se
     # pasa de página y Word reduce toda la imagen).
-    em = 22.0
+    em = 19.0
     n_nodes = max(len(nodes), 1)
     if n_nodes > 90:
-        em = 17.0
+        em = 15.0
     elif n_nodes > 50:
-        em = 19.0
+        em = 16.5
     elif n_nodes > 20:
-        em = 20.0
+        em = 17.5
 
     top = 0.9 * em
     margin = 0.8 * em
