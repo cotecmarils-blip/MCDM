@@ -9,6 +9,7 @@ import SimulacionResumenGlobal from './SimulacionResumenGlobal';
 import SimulacionPipelineTrazabilidad from './SimulacionPipelineTrazabilidad';
 import SimulacionGraficosCalculo from './SimulacionGraficosCalculo';
 import SimulacionSensibilidadCalculo from './SimulacionSensibilidadCalculo';
+import SimulacionSensibilidadEstocastica from './SimulacionSensibilidadEstocastica';
 import SimulacionExportButtons from './SimulacionExportButtons';
 import SimulacionResultadoTabs from './SimulacionResultadoTabs';
 import { useSimulacionPlotBg } from './simulacionPlotBg';
@@ -45,9 +46,12 @@ function SimulacionResultados({
   const soloMatriz = Boolean(resultado.solo_matriz);
   const tabsDisponibles = soloMatriz
     ? ['resultados', 'graficos']
-    : ['resultados', 'graficos', 'sensibilidad'];
+    : ['resultados', 'graficos', 'sensibilidad', 'sensibilidad-estocastica'];
   const vistaGraficos = showGraficos && vistaCalculo === 'graficos';
   const vistaSensibilidad = showGraficos && !soloMatriz && vistaCalculo === 'sensibilidad';
+  const vistaSensibilidadEstocastica = showGraficos
+    && !soloMatriz
+    && vistaCalculo === 'sensibilidad-estocastica';
 
   return (
     <div className="space-y-6">
@@ -88,6 +92,13 @@ function SimulacionResultados({
         />
       ) : vistaSensibilidad ? (
         <SimulacionSensibilidadCalculo
+          proyectoId={proyectoId}
+          resultado={resultado}
+          plotBgColor={plotBgColor}
+          onPlotBgColorChange={handlePlotBgColorChange}
+        />
+      ) : vistaSensibilidadEstocastica ? (
+        <SimulacionSensibilidadEstocastica
           proyectoId={proyectoId}
           resultado={resultado}
           plotBgColor={plotBgColor}

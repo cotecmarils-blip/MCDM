@@ -21,6 +21,11 @@ ALT_COLORS = [
 WEIGHT_TOLERANCE = 1e-9
 DEFAULT_STEPS = 21
 MAX_STEPS = 101
+DEFAULT_STOCHASTIC_SAMPLES = 500
+MAX_STOCHASTIC_SAMPLES = 3000
+DEFAULT_STOCHASTIC_CONCENTRATION = 40.0
+MIN_STOCHASTIC_CONCENTRATION = 2.0
+MAX_STOCHASTIC_CONCENTRATION = 500.0
 
 
 def _madm_label(metodo: str | None) -> str:
@@ -556,5 +561,123 @@ def build_tornado_from_resultado(
         'descripcion': (
             f'Tornado del score {_madm_label(ctx["metodo_madm"])} de «{target_alt}» '
             f'al variar cada peso de dimensión entre 0% y 100%.'
+        ),
+    }
+
+
+def _clamp_stochastic_params(muestras: int | None, concentracion: float | None) -> tuple[int, float]:
+    n = int(muestras if muestras is not None else DEFAULT_STOCHASTIC_SAMPLES)
+    n = max(50, min(MAX_STOCHASTIC_SAMPLES, n))
+    kappa = float(
+        concentracion if concentracion is not None else DEFAULT_STOCHASTIC_CONCENTRATION
+    )
+    kappa = max(MIN_STOCHASTIC_CONCENTRATION, min(MAX_STOCHASTIC_CONCENTRATION, kappa))
+    return n, kappa
+
+
+def build_stochastic_sensibilidad_from_resultado(
+    resultado: dict[str, Any],
+    *,
+    muestras: int | None = None,
+    concentracion: float | None = None,
+    seed: int | None = 42,
+) -> dict[str, Any]:
+    """Sensibilidad estocástica macro: Monte Carlo sobre pesos entre dimensiones.
+
+    Muestrea vectores de pesos cercanos a los del cálculo (Dirichlet centrada en
+    la línea base) y recalcula el ranking MADM. Reporta probabilidad de ganar,
+    frecuencias de puesto y estabilidad del ganador.
+    """
+    import numpy as np
+
+    error = validate_sensibilidad_resultado(resultado)
+    if error:
+        return {'ok': False, 'mensaje': error}
+
+    n_samples, kappa = _clamp_stochastic_params(muestras, concentracion)
+    ctx = _build_ranker_context(resultado)
+    dimensions = ctx['dimensions']
+    alternatives = ctx['alternatives']
+    base_weights = np.asarray(_baseline_weights(resultado, dimensions), dtype=float)
+    if base_weights.sum() <= WEIGHT_TOLERANCE:
+        return {'ok': False, 'mensaje': 'Los pesos base del cálculo no son válidos.'}
+
+    baseline_rank = _rank_at_weights(ctx, base_weights.tolist())
+    baseline_winner = baseline_rank.get('best_alternative')
+
+    alpha = np.maximum(base_weights, 1e-6) * kappa
+    rng = np.random.default_rng(None if seed is None else int(seed))
+    sampled_weights = rng.dirichlet(alpha, size=n_samples)
+
+    n_alts = len(alternatives)
+    win_counts = {alt: 0 for alt in alternatives}
+    rank_counts = {alt: [0] * n_alts for alt in alternatives}
+    score_sums = {alt: 0.0 for alt in alternatives}
+    score_sq_sums = {alt: 0.0 for alt in alternatives}
+    same_winner = 0
+
+    for weights_row in sampled_weights:
+        rank_payload = _rank_at_weights(ctx, weights_row.tolist())
+        winner = rank_payload.get('best_alternative')
+        if winner == baseline_winner:
+            same_winner += 1
+        if winner in win_counts:
+            win_counts[winner] += 1
+
+        ranking_map = rank_payload.get('ranking') or {}
+        scores = rank_payload.get('scores') or {}
+        for alt in alternatives:
+            rank = int(ranking_map.get(alt) or 0)
+            if 1 <= rank <= n_alts:
+                rank_counts[alt][rank - 1] += 1
+            score = float(scores.get(alt, 0.0))
+            score_sums[alt] += score
+            score_sq_sums[alt] += score * score
+
+    alternatives_out = []
+    for idx, alt in enumerate(alternatives):
+        mean = score_sums[alt] / n_samples
+        var = max(0.0, (score_sq_sums[alt] / n_samples) - (mean * mean))
+        freq = [
+            round(count / n_samples, 6)
+            for count in rank_counts[alt]
+        ]
+        alternatives_out.append({
+            'name': alt,
+            'color': ALT_COLORS[idx % len(ALT_COLORS)],
+            'win_probability': round(win_counts[alt] / n_samples, 6),
+            'win_probability_pct': round(100.0 * win_counts[alt] / n_samples, 2),
+            'rank_frequency': freq,
+            'rank_frequency_pct': [round(100.0 * f, 2) for f in freq],
+            'score_mean': round(mean, 6),
+            'score_std': round(float(np.sqrt(var)), 6),
+            'baseline_rank': int((baseline_rank.get('ranking') or {}).get(alt) or 0),
+            'baseline_score': round(float((baseline_rank.get('scores') or {}).get(alt, 0.0)), 6),
+        })
+
+    alternatives_out.sort(
+        key=lambda item: (-item['win_probability'], item['baseline_rank'] or 999, -item['score_mean']),
+    )
+
+    return {
+        'ok': True,
+        'tipo': 'sensibilidad_estocastica_macro',
+        'nivel': 'macro',
+        'dimensions': dimensions,
+        'alternatives': alternatives_out,
+        'muestras': n_samples,
+        'concentracion': round(kappa, 4),
+        'seed': seed,
+        'metodo_madm': ctx['metodo_madm'],
+        'metodo_madm_label': _madm_label(ctx['metodo_madm']),
+        'pesos_base': {
+            dimensions[j]: round(float(base_weights[j]), 6) for j in range(len(dimensions))
+        },
+        'baseline_winner': baseline_winner,
+        'estabilidad_ganador': round(same_winner / n_samples, 6),
+        'estabilidad_ganador_pct': round(100.0 * same_winner / n_samples, 2),
+        'descripcion': (
+            f'Sensibilidad estocástica macro ({n_samples} simulaciones) sobre los pesos '
+            f'de dimensión del ranking {_madm_label(ctx["metodo_madm"])}.'
         ),
     }

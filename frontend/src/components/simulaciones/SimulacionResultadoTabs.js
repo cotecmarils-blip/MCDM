@@ -4,6 +4,7 @@ const TABS = [
   { id: 'resultados', label: 'Resultados' },
   { id: 'graficos', label: 'Gráficos' },
   { id: 'sensibilidad', label: 'Sensibilidad determinística' },
+  { id: 'sensibilidad-estocastica', label: 'Sensibilidad estocástica' },
 ];
 
 function SimulacionResultadoTabs({ activeTab, onChange, tabs = null }) {

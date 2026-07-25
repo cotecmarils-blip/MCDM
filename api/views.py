@@ -1760,6 +1760,7 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
         from .simulacion_sensibilidad_service import (
             build_sensibilidad_from_resultado,
             build_sensibilidad_model,
+            build_stochastic_sensibilidad_from_resultado,
             build_tornado_from_resultado,
             list_sensibilidad_dimensiones,
             rank_sensibilidad_at_weights,
@@ -1811,6 +1812,21 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
                     resultado or {},
                     alternative=body.get('alternative'),
                     weights_by_dimension=weights_body if isinstance(weights_body, dict) else None,
+                )
+            except ValidationError as exc:
+                detail = exc.messages[0] if getattr(exc, 'messages', None) else str(exc)
+                return Response({'ok': False, 'mensaje': detail}, status=status.HTTP_400_BAD_REQUEST)
+            if not payload.get('ok'):
+                return Response(payload, status=status.HTTP_400_BAD_REQUEST)
+            return Response(payload)
+
+        if accion in {'estocastica', 'estocástica', 'stochastic'}:
+            try:
+                payload = build_stochastic_sensibilidad_from_resultado(
+                    resultado or {},
+                    muestras=body.get('muestras'),
+                    concentracion=body.get('concentracion'),
+                    seed=body.get('seed', 42),
                 )
             except ValidationError as exc:
                 detail = exc.messages[0] if getattr(exc, 'messages', None) else str(exc)
