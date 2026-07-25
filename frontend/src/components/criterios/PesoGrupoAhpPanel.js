@@ -229,14 +229,14 @@ function PesoGrupoAhpPanel({
     : payload?.pesos_calculados || [];
 
   const scheduleSave = useCallback(
-    (nextJuicios) => {
+    (nextJuicios, modoGuardado = 'ahp') => {
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       saveTimerRef.current = setTimeout(async () => {
         if (!escenarioId) return;
         setSaving(true);
         try {
           const res = await escenarios.setPesoGrupo(escenarioId, parentId, {
-            modo: 'ahp',
+            modo: modoGuardado,
             juicios: nextJuicios,
           });
           setPayload(res.data || {});
@@ -257,15 +257,23 @@ function PesoGrupoAhpPanel({
     setJuicios((prev) => {
       const next = setImportanceRowOverCol(prev, idRow, idCol, value);
       setDirty(true);
-      scheduleSave(next);
+      scheduleSave(next, 'ahp');
       return next;
     });
   };
 
   const handleModo = async (nextModo) => {
-    if (disabled || nextModo === modo) return;
+    if (disabled || nextModo === modo || saving) return;
+    // Cancela el autoguardado de la matriz para que no vuelva a forzar modo AHP.
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
     setSaving(true);
     setError(null);
+    // Cambio optimista: el usuario debe poder volver a Manual aunque el CR esté malo.
+    setModo(nextModo);
+    onModoChange?.(nextModo);
     try {
       const res = await escenarios.setPesoGrupo(escenarioId, parentId, {
         modo: nextModo,
@@ -273,10 +281,12 @@ function PesoGrupoAhpPanel({
       });
       const data = res.data || {};
       setPayload(data);
-      setModo(data.modo);
+      setModo(data.modo || nextModo);
       setDirty(false);
-      onModoChange?.(data.modo);
+      onModoChange?.(data.modo || nextModo);
     } catch (err) {
+      setModo(modo);
+      onModoChange?.(modo);
       setError(err.response?.data?.detail || 'No se pudo cambiar el modo.');
     } finally {
       setSaving(false);

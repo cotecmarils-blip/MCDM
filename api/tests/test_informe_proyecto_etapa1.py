@@ -2,7 +2,11 @@ from types import SimpleNamespace
 
 from django.test import SimpleTestCase
 
-from api.informe_word_service import _peso_rows_for_escenario, _terminal_funcion_text
+from api.informe_word_service import (
+    _display_sibling_weights,
+    _peso_rows_for_escenario,
+    _terminal_funcion_text,
+)
 
 
 class InformeProyectoEtapa1Tests(SimpleTestCase):
@@ -128,6 +132,17 @@ class InformeProyectoEtapa1Tests(SimpleTestCase):
         by_name = {row[3]: row for row in rows}
         self.assertEqual(by_name['Rama A'][6], '50 %')
         self.assertEqual(by_name['Rama B'][6], '50 %')
+
+    def test_display_sibling_weights_renormaliza_cuando_faltan_hermanos(self):
+        """Como Flexibility en el mapa: 55.45+17.93+6.14 ≈ 79.5 → 100 % visual."""
+        a = SimpleNamespace(id=1, parent_id=10, peso=55.45)
+        b = SimpleNamespace(id=2, parent_id=10, peso=17.93)
+        c = SimpleNamespace(id=3, parent_id=10, peso=6.14)
+        display = _display_sibling_weights([a, b, c], None)
+        self.assertAlmostEqual(sum(display.values()), 100.0, places=5)
+        self.assertAlmostEqual(display[1], 55.45 / 79.52 * 100.0, places=2)
+        self.assertAlmostEqual(display[2], 17.93 / 79.52 * 100.0, places=2)
+        self.assertAlmostEqual(display[3], 6.14 / 79.52 * 100.0, places=2)
 
     def test_terminal_funcion_usa_nodo_como_fuente_de_verdad(self):
         terminal = SimpleNamespace(

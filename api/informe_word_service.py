@@ -1306,6 +1306,35 @@ def _active_concept_nodes(
     return [n for n in nodos if n.id in active_ids]
 
 
+def _display_sibling_weights(
+    nodes: list[NodoArbol],
+    config_map: dict[int, Any] | None,
+) -> dict[int, float]:
+    """Pesos locales renormados entre hermanos activos (Σ ≈ 100 % por grupo).
+
+    El mapa solo dibuja nodos activos; si un hermano quedó inactivo, los pesos
+    almacenados del resto no suman 100 %. La simulación ya normaliza con
+    Σ(u·w)/Σw; aquí se muestra la misma proporción para que el gráfico no
+    parezca inconsistente.
+    """
+    by_parent: dict[int | None, list[NodoArbol]] = {}
+    for n in nodes:
+        by_parent.setdefault(n.parent_id, []).append(n)
+
+    display: dict[int, float] = {}
+    for siblings in by_parent.values():
+        raw = [float(_cfg_value(config_map, s, 'peso') or 0) for s in siblings]
+        total = sum(raw)
+        if total <= 0:
+            share = 100.0 / len(siblings) if siblings else 0.0
+            for s in siblings:
+                display[s.id] = share
+            continue
+        for s, w in zip(siblings, raw):
+            display[s.id] = (w / total) * 100.0
+    return display
+
+
 def _render_concept_map_png(
     omoe: Omoe,
     nodos: list[NodoArbol],
@@ -1320,6 +1349,9 @@ def _render_concept_map_png(
     level_orders = sorted({_node_level_orden(n) for n in nodes})
     level_index = {order: idx + 1 for idx, order in enumerate(level_orders)}
     max_level = max(level_index.values(), default=1)
+    display_weights = (
+        _display_sibling_weights(nodes, config_map) if include_weights else {}
+    )
 
     scale = 2
     n_nodes = max(len(nodes), 1)
@@ -1405,9 +1437,8 @@ def _render_concept_map_png(
         name = (n.nombre or n.codigo or '—').strip()
         lines = _wrap(name, font_node, cap)
         if include_weights:
-            value = _cfg_value(config_map, n, 'peso')
             try:
-                num = float(value)
+                num = float(display_weights.get(n.id, _cfg_value(config_map, n, 'peso')))
                 lines = lines + [f'w={num:.0f}%' if num.is_integer() else f'w={num:.2f}%']
             except (TypeError, ValueError):
                 lines = lines + ['w=—']
@@ -1677,9 +1708,12 @@ def _concept_map_picture_layout(
         config_map=config_map,
         include_weights=include_weights,
     )
-    # Bloque en tope de página: título + figura ≤ ~17 cm de alto.
+    # Bloque en tope de página: título + figura. Preferimos texto legible
+    # frente a forzar que un árbol alto quepa en una sola página (eso
+    # reducía el ancho y dejaba los nombres aplastados / ilegibles).
     max_w_cm = 16.0
     max_h_cm = 16.5
+    min_readable_w_cm = 11.0
     render_scale = 2
     layout_dpi = 96
     with Image.open(picture) as img:
@@ -1694,8 +1728,12 @@ def _concept_map_picture_layout(
     width_cm = min(content_width_cap_cm, natural_width_cm, max_w_cm)
     height_cm = width_cm * aspect
     if height_cm > max_h_cm:
-        width_cm = max_h_cm / aspect
-        height_cm = max_h_cm
+        shrunk_w = max_h_cm / aspect
+        if shrunk_w >= min_readable_w_cm:
+            width_cm = shrunk_w
+            height_cm = max_h_cm
+        # Si achicar por altura dejaría el texto ilegible, mantenemos el
+        # ancho y dejamos que el bloque ocupe más alto / salte de página.
 
     return picture, width_cm, height_cm
 

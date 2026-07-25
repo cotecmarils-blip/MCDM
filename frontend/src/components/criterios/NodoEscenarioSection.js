@@ -134,6 +134,7 @@ const NodoEscenarioSection = forwardRef(function NodoEscenarioSection(
     }
     const total = sumPesosPercent(activos.map((h) => h.peso));
     const ok = Math.abs(total - 100) <= 0.05;
+    const inactivos = hermanosView.length - activos.length;
     return {
       count: activos.length,
       total,
@@ -141,7 +142,9 @@ const NodoEscenarioSection = forwardRef(function NodoEscenarioSection(
         ? modoGrupo === 'ahp'
           ? 'Pesos AHP aplicados (Σ ≈ 100 %).'
           : 'Proporciones listas para simular.'
-        : 'No hace falta sumar 100 %: la simulación normaliza con Σ(u·w)/Σw.',
+        : inactivos > 0
+          ? `Σ activos ≈ ${total.toFixed(1)} % (hay ${inactivos} inactivo${inactivos === 1 ? '' : 's'}). La simulación y el mapa del informe normalizan entre activos.`
+          : 'No hace falta sumar 100 %: la simulación normaliza con Σ(u·w)/Σw.',
     };
   }, [hermanosView, modoGrupo]);
 

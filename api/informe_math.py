@@ -115,6 +115,24 @@ def normalize_to_latex(formula: str) -> str:
     return expr
 
 
+def _repair_omml(omml: str) -> str:
+    """Corrige XML mal formado que emite mathml2omml para acentos/overline.
+
+    Para ``\\bar{x}`` / ``\\overline{x}`` la librería abre ``<m:groupChrPr>``
+    pero lo cierra con ``</m:groupChr>``, y lo mismo puede ocurrir con
+    ``<m:accPr>`` (``\\hat``, ``\\vec``, ``\\tilde``). Eso deja el OMML sin
+    parsear y la ecuación caía a texto plano (LaTeX crudo visible en el Word).
+    Reetiquetamos el cierre del bloque de propiedades para que sea válido.
+    """
+    for prop, parent in (('groupChrPr', 'groupChr'), ('accPr', 'acc')):
+        omml = re.sub(
+            rf'(<m:{prop}>(?:(?!</m:{parent}>).)*?)</m:{parent}>',
+            rf'\1</m:{prop}>',
+            omml,
+        )
+    return omml
+
+
 def latex_to_omml_element(latex: str):
     """Convierte LaTeX a un elemento OMML listo para insertar en un párrafo."""
     expr = normalize_to_latex(latex)
@@ -122,19 +140,24 @@ def latex_to_omml_element(latex: str):
     omml_output = __import__('mathml2omml', fromlist=['convert']).convert(mathml_output)
     xml_output = (
         '<p xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math">'
-        f'{omml_output}</p>'
+        f'{_repair_omml(omml_output)}</p>'
     )
     return parse_xml(xml_output)[0]
 
 
 def _append_omml(paragraph, latex: str) -> bool:
-    """Inserta OMML en el párrafo. True si tuvo éxito."""
+    """Inserta OMML en el párrafo. True si tuvo éxito.
+
+    Se usa primero nuestra ruta con reparación de OMML porque ``math2docx``
+    comparte el mismo pipeline (latex2mathml → mathml2omml) sin corregir el
+    XML defectuoso de acentos/overline.
+    """
     try:
-        add_math(paragraph, normalize_to_latex(latex))
+        paragraph._p.append(latex_to_omml_element(latex))
         return True
     except Exception:
         try:
-            paragraph._p.append(latex_to_omml_element(latex))
+            add_math(paragraph, normalize_to_latex(latex))
             return True
         except Exception:
             return False
