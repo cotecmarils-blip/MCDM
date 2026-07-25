@@ -1353,41 +1353,38 @@ def _render_concept_map_png(
         _display_sibling_weights(nodes, config_map) if include_weights else {}
     )
 
-    scale = 3  # Más resolución: al escalar a la página la letra sigue legible.
+    scale = 3
+
+    # El PNG se inserta escalado al ancho de la página, así que el tamaño
+    # de letra percibido NO depende de la fuente en píxeles sino de la
+    # relación fuente / ancho total del lienzo. Por eso todo el espaciado
+    # se define en «em» de la fuente de nodo: subir la fuente sin más solo
+    # agranda el lienzo y el texto termina igual (o peor, si el alto se
+    # pasa de página y Word reduce toda la imagen).
+    em = 22.0
     n_nodes = max(len(nodes), 1)
-    # Densidad adaptativa: con muchos nodos el PNG se compacta para no
-    # generar figuras de más de una página de alto. La fuente baja menos
-    # que el espaciado (prioridad: texto legible).
-    if n_nodes <= 20:
-        density = 1.0
-        font_density = 1.0
-    elif n_nodes <= 50:
-        density = 0.82
-        font_density = 0.92
-    elif n_nodes <= 90:
-        density = 0.68
-        font_density = 0.84
-    else:
-        density = 0.55
-        font_density = 0.78
+    if n_nodes > 90:
+        em = 17.0
+    elif n_nodes > 50:
+        em = 19.0
+    elif n_nodes > 20:
+        em = 20.0
 
-    top = int(14 * density) + 4
-    margin = int(14 * density) + 6
-    node_gap_y = max(4.0, 7.0 * density)
-    col_gap = max(28.0, 44.0 * density)
-    # Padding justo alrededor del texto: las cajas no deben verse vacías.
-    pad_x = max(8.0, 10.0 * density)
-    pad_y = max(5.0, 6.0 * density)
-    # Cap de ancho de texto: nombres largos envuelven; un poco más ancho
-    # que antes para no partir palabras cortas a la mitad (p. ej. Maneuverability).
-    max_text_w = max(110.0, 135.0 * density)
-    label_cap = max(120.0, 150.0 * density)
+    top = 0.9 * em
+    margin = 0.8 * em
+    node_gap_y = 0.38 * em
+    col_gap = 1.35 * em
+    pad_x = 0.6 * em
+    pad_y = 0.34 * em
+    # ~11 em de texto por línea: suficiente para que nombres largos usen 2–3
+    # líneas en vez de 4–5 (un lienzo más alto obliga a reducir la imagen).
+    max_text_w = 11.0 * em
+    label_cap = 9.0 * em
 
-    # Fuentes grandes: a 16.5 cm de ancho de página esto ≈ 16–18 pt legibles.
-    font_level = _report_font(max(14, int(17 * font_density)) * scale, bold=True)
-    font_node = _report_font(max(18, int(22 * font_density)) * scale, bold=True)
-    font_root = _report_font(max(20, int(26 * font_density)) * scale, bold=True)
-    font_root_sub = _report_font(max(13, int(15 * font_density)) * scale, bold=True)
+    font_level = _report_font(int(em * 0.72) * scale, bold=True)
+    font_node = _report_font(int(em) * scale, bold=True)
+    font_root = _report_font(int(em * 1.12) * scale, bold=True)
+    font_root_sub = _report_font(int(em * 0.62) * scale, bold=True)
 
     def _line_h(font) -> float:
         bbox = font.getbbox('Ághjy')
@@ -1479,11 +1476,10 @@ def _render_concept_map_png(
     header_h = header_lines_max * level_line_h + 12
     content_top = top + header_h + 14
 
-    # Ancho de columna = el más ancho del nivel (para centrar la columna);
-    # cada caja usa su propio ancho (así «Range» no queda en un rectángulo
-    # vacío del tamaño de «Rescue and administrative…»).
+    # Ancho UNIFORME por nivel (look de organigrama), acotado para que un
+    # nombre largo no ensanche toda la columna.
     col_w: dict[int, float] = {0: root_w}
-    max_col_w = max_text_w + 2 * pad_x + 8
+    max_col_w = max_text_w + 2 * pad_x
     for level in range(1, max_level + 1):
         widths = [
             natural_text_w[n.id] + 2 * pad_x for n in nodes
@@ -1491,27 +1487,22 @@ def _render_concept_map_png(
         ]
         label_w = max(
             (font_level.getlength(line) / scale for line in level_label_lines.get(level, [])),
-            default=90,
+            default=4.0 * em,
         )
-        raw = max(max(widths, default=120.0), label_w + 16, 108.0)
+        raw = max(max(widths, default=5.0 * em), label_w + pad_x, 4.5 * em)
         col_w[level] = min(raw, max_col_w)
 
-    # 2ª pasada: caja ajustada al texto de cada nodo (con tope de columna).
+    # 2ª pasada: el texto se reajusta al ancho definitivo de su columna.
     node_lines: dict[int, list[str]] = {}
     node_w: dict[int, float] = {}
     node_h: dict[int, float] = {}
     for n in nodes:
         level = node_level[n.id]
-        text_cap = min(max_text_w, col_w[level] - 2 * pad_x)
-        lines = _node_text_lines(n, text_cap)
-        text_w = max(
-            (font_node.getlength(line) / scale for line in lines),
-            default=40,
-        )
-        box_w = min(max(text_w + 2 * pad_x, 72.0), col_w[level])
+        box_w = col_w[level]
+        lines = _node_text_lines(n, box_w - 2 * pad_x)
         node_lines[n.id] = lines
         node_w[n.id] = box_w
-        node_h[n.id] = max(28.0, len(lines) * node_line_h + 2 * pad_y)
+        node_h[n.id] = max(1.6 * em, len(lines) * node_line_h + 2 * pad_y)
 
     # Posición X (centro) de cada columna, de izquierda a derecha.
     col_center_x: dict[int, float] = {}
@@ -1725,16 +1716,16 @@ def _concept_map_picture_layout(
         config_map=config_map,
         include_weights=include_weights,
     )
-    # Siempre el ancho completo de página: achicar por altura era justo lo
-    # que dejaba la letra ilegible (cajas grandes, texto diminuto). Un
-    # mapa alto puede ocupar más de una página; eso es preferible.
+    # Ancho de página completo, pero sin pasarse del alto útil: si la figura
+    # no cabe, Word reduce TODA la imagen y el texto queda diminuto (era la
+    # causa de la letra ilegible). Ajustamos aquí para que nunca ocurra.
     max_w_cm = 16.5
-    render_scale = 3
+    max_h_cm = 22.5
     with Image.open(picture) as img:
         px_w, px_h = img.size
     picture.seek(0)
     aspect = (px_h / px_w) if px_w else 1.0
-    width_cm = max_w_cm
+    width_cm = min(max_w_cm, max_h_cm / aspect if aspect else max_w_cm)
     height_cm = width_cm * aspect
     return picture, width_cm, height_cm
 
