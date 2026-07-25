@@ -24,6 +24,7 @@ from .access import (
     can_manage_users_globally,
     check_user_login_access,
     is_global_admin,
+    is_global_manager,
     manageable_proyecto_ids,
     membership_access_code,
     valid_membership_q,
@@ -103,6 +104,7 @@ def me_view(request):
     memberships = ProyectoMembership.objects.filter(
         usuario=user,
     ).filter(valid_membership_q()).select_related('proyecto')
+    es_gerente_global = is_global_manager(user)
     admin_ids = manageable_proyecto_ids(user)
     admin_proyectos = []
     if admin_ids:
@@ -116,14 +118,25 @@ def me_view(request):
         'puede_crear_proyecto': can_create_proyecto(user),
         'puede_gestionar_usuarios': can_manage_users_globally(user),
         'proyectos_administrables': admin_proyectos,
-        'proyectos': [
-            {
-                'proyecto_id': m.proyecto_id,
-                'proyecto_nombre': m.proyecto.nombre,
-                'rol': m.rol,
-            }
-            for m in memberships
-        ],
+        'proyectos': (
+            [
+                {
+                    'proyecto_id': p.id,
+                    'proyecto_nombre': p.nombre,
+                    'rol': ProyectoMembership.ROL_JEFE,
+                }
+                for p in Proyecto.objects.order_by('nombre')
+            ]
+            if es_gerente_global and not is_global_admin(user)
+            else [
+                {
+                    'proyecto_id': m.proyecto_id,
+                    'proyecto_nombre': m.proyecto.nombre,
+                    'rol': m.rol,
+                }
+                for m in memberships
+            ]
+        ),
     })
 
 

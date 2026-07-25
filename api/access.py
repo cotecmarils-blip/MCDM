@@ -125,18 +125,15 @@ def can_manage_users_globally(user) -> bool:
     """Admin global o gerente con al menos un proyecto activo."""
     if not user.is_authenticated:
         return False
-    if is_global_admin(user):
+    if is_global_admin(user) or is_global_manager(user):
         return True
-    return ProyectoMembership.objects.filter(
-        usuario=user,
-        rol=ProyectoMembership.ROL_JEFE,
-    ).filter(valid_membership_q()).exists()
+    return False
 
 
 def manageable_proyecto_ids(user):
     if not user.is_authenticated:
         return set()
-    if is_global_admin(user):
+    if is_global_admin(user) or is_global_manager(user):
         return set(Proyecto.objects.values_list('id', flat=True))
     return set(
         ProyectoMembership.objects.filter(
@@ -181,12 +178,9 @@ def can_create_proyecto(user) -> bool:
     """
     if not user.is_authenticated:
         return False
-    if is_global_admin(user):
+    if is_global_admin(user) or is_global_manager(user):
         return True
-    return ProyectoMembership.objects.filter(
-        usuario=user,
-        rol=ProyectoMembership.ROL_JEFE,
-    ).filter(valid_membership_q()).exists()
+    return False
 
 
 def can_create_alternativa(user, proyecto_id: int) -> bool:
@@ -248,12 +242,22 @@ def is_global_admin(user):
     return user.is_authenticated and (user.is_superuser or user.is_staff)
 
 
+def is_global_manager(user):
+    """Un gerente vigente administra todos los proyectos sin autoasignaciones."""
+    if not user.is_authenticated:
+        return False
+    return ProyectoMembership.objects.filter(
+        usuario=user,
+        rol=ProyectoMembership.ROL_JEFE,
+    ).filter(valid_membership_q()).exists()
+
+
 def get_membership(user, proyecto_id):
     if not user.is_authenticated or not proyecto_id:
         return None
     if is_global_admin(user):
         return None
-    return (
+    membership = (
         ProyectoMembership.objects.filter(
             usuario=user,
             proyecto_id=proyecto_id,
@@ -262,12 +266,22 @@ def get_membership(user, proyecto_id):
         .select_related('proyecto')
         .first()
     )
+    if membership is not None:
+        return membership
+    if is_global_manager(user):
+        return ProyectoMembership(
+            usuario=user,
+            proyecto_id=proyecto_id,
+            rol=ProyectoMembership.ROL_JEFE,
+            activo=True,
+        )
+    return None
 
 
 def user_proyecto_ids(user):
     if not user.is_authenticated:
         return set()
-    if is_global_admin(user):
+    if is_global_admin(user) or is_global_manager(user):
         return set(Proyecto.objects.values_list('id', flat=True))
     return set(
         ProyectoMembership.objects.filter(
@@ -281,7 +295,7 @@ def user_proyecto_ids(user):
 def user_alternativa_ids(user, proyecto_id=None):
     if not user.is_authenticated:
         return set()
-    if is_global_admin(user):
+    if is_global_admin(user) or is_global_manager(user):
         qs = Alternativa.objects.all()
         if proyecto_id:
             qs = qs.filter(proyecto_id=proyecto_id)
@@ -304,7 +318,7 @@ def user_alternativa_ids(user, proyecto_id=None):
 def user_mision_ids(user, proyecto_id=None):
     if not user.is_authenticated:
         return set()
-    if is_global_admin(user):
+    if is_global_admin(user) or is_global_manager(user):
         qs = Mision.objects.all()
         if proyecto_id:
             qs = qs.filter(omoe__proyecto_id=proyecto_id)

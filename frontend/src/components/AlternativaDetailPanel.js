@@ -11,6 +11,7 @@ import AlternativaViewContent from './AlternativaViewContent';
 import AlternativaCaracteristicasFields from './AlternativaCaracteristicasFields';
 import DocumentosList from './DocumentosList';
 import DeleteAlternativaModal from './DeleteAlternativaModal';
+import RemoveCapacidadModal from './RemoveCapacidadModal';
 import { getAlternativaInputClass, getAlternativaLabelClass } from './alternativaFormStyles';
 
 const emptyCapacidad = () => ({ _key: crypto.randomUUID(), nombre: '', descripcion: '' });
@@ -50,6 +51,7 @@ function AlternativaDetailPanel({
     referencia: '',
     costo: '',
     costo_unidad: 'MUSD',
+    activa: true,
     foto: null,
     anexo: null,
   });
@@ -61,6 +63,7 @@ function AlternativaDetailPanel({
   const [isEditing, setIsEditing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [capacidadToRemove, setCapacidadToRemove] = useState(null);
 
   const isViewMode = !isNew && !isEditing;
 
@@ -94,6 +97,7 @@ function AlternativaDetailPanel({
       referencia: alt.referencia || '',
       costo: alt.costo ?? '',
       costo_unidad: alt.costo_unidad || 'MUSD',
+      activa: alt.activa !== false,
       foto: null,
       anexo: null,
     });
@@ -113,6 +117,7 @@ function AlternativaDetailPanel({
         referencia: '',
         costo: '',
         costo_unidad: 'MUSD',
+        activa: true,
         foto: null,
         anexo: null,
       });
@@ -153,8 +158,11 @@ function AlternativaDetailPanel({
   }, [plantillasVersion, isNew, isEditing, existing, loadPlantillasForAlternativa]);
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleFileChange = (e) => {
@@ -266,6 +274,7 @@ function AlternativaDetailPanel({
   const removeCapacidad = (cap) => {
     if (cap.id) setRemovedCapacidadIds((prev) => [...prev, cap.id]);
     setCapacidadesList((prev) => prev.filter((c) => c._key !== cap._key));
+    setCapacidadToRemove(null);
   };
 
   const toggleCaracteristicaActiva = (plantillaId) => {
@@ -447,7 +456,7 @@ function AlternativaDetailPanel({
                   <span className="text-xs font-semibold text-gray-500">Capacidad {index + 1}</span>
                   <button
                     type="button"
-                    onClick={() => removeCapacidad(cap)}
+                    onClick={() => setCapacidadToRemove(cap)}
                     className="text-xs text-red-500 hover:text-red-600"
                   >
                     Quitar
@@ -529,6 +538,13 @@ function AlternativaDetailPanel({
         )}
       </div>
     </form>
+    {capacidadToRemove && (
+      <RemoveCapacidadModal
+        capacidad={capacidadToRemove}
+        onConfirm={() => removeCapacidad(capacidadToRemove)}
+        onCancel={() => setCapacidadToRemove(null)}
+      />
+    )}
     {deleteModal}
     </>
   );

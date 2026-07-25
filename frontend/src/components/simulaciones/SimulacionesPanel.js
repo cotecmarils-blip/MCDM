@@ -481,9 +481,9 @@ function SimulacionesPanel({ proyectoId, canWrite = true }) {
     setStepError(null);
     setAnalisisAltId(null);
     const dims = opcionesMeta?.dimensiones || [];
-    setCalcConfig(createEmptyCalcConfig(dims));
+    setCalcConfig(createEmptyCalcConfig(dims, opcionesMeta?.defaults || {}));
     setWizardKey((k) => k + 1);
-  }, [opcionesMeta?.dimensiones]);
+  }, [opcionesMeta]);
 
   const handleNuevoCalculo = useCallback(() => {
     setWizardOpen(true);
@@ -494,9 +494,9 @@ function SimulacionesPanel({ proyectoId, canWrite = true }) {
     setStepError(null);
     setAnalisisAltId(null);
     const dims = opcionesMeta?.dimensiones || [];
-    setCalcConfig(createEmptyCalcConfig(dims));
+    setCalcConfig(createEmptyCalcConfig(dims, opcionesMeta?.defaults || {}));
     setWizardKey((k) => k + 1);
-  }, [opcionesMeta?.dimensiones]);
+  }, [opcionesMeta]);
 
   const handleValidar = useCallback(async () => {
     try {

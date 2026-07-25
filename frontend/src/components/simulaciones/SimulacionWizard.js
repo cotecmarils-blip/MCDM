@@ -75,6 +75,7 @@ function SimulacionWizard({
     () => opcionesMeta?.dimensiones || [],
     [opcionesMeta?.dimensiones],
   );
+  const alternativasDisponibles = opcionesMeta?.alternativas || [];
   const dimensionesActivas = useMemo(
     () => dimensionesSeleccionadas(dimensiones, calcConfig),
     [dimensiones, calcConfig],
@@ -137,6 +138,14 @@ function SimulacionWizard({
       ? current.filter((d) => d !== nombre)
       : [...current, nombre];
     onChange({ ...calcConfig, dimensiones_normalizar: next });
+  };
+
+  const toggleAlternativa = (id) => {
+    const current = calcConfig.alternativa_ids || [];
+    const next = current.includes(id)
+      ? current.filter((value) => value !== id)
+      : [...current, id];
+    onChange({ ...calcConfig, alternativa_ids: next });
   };
 
   const isDimensionSelected = (nombre) =>
@@ -270,6 +279,37 @@ function SimulacionWizard({
 
             {currentStep.id === 'direcciones' && (
               <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">
+                    Alternativas que participan en este cálculo *
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-5">
+                    {alternativasDisponibles.filter((alt) => alt.activa).map((alt) => {
+                      const selected = (calcConfig.alternativa_ids || []).includes(alt.id);
+                      return (
+                        <label
+                          key={alt.id}
+                          className={`flex items-center gap-2 rounded-lg border p-3 cursor-pointer ${
+                            selected
+                              ? 'border-navy-500/40 bg-navy-500/[0.04]'
+                              : 'border-gray-200 dark:border-gray-700/60'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            disabled={loading}
+                            onChange={() => toggleAlternativa(alt.id)}
+                            className="rounded border-gray-300"
+                          />
+                          <span className="text-sm font-medium">
+                            {alt.apodo || alt.nombre}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Marque las dimensiones que participarán en Pareto, normalización, pesos y ranking.
                   Para cada una indique si mayor o menor valor es mejor.

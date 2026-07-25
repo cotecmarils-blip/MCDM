@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { proyectos } from '../../api';
-import { ModalOverlay } from '../../utils/modalBackdrop';
+import { proyectos } from '../api';
+import { ModalOverlay } from '../utils/modalBackdrop';
 
 function toggleId(set, id) {
   const next = new Set(set);

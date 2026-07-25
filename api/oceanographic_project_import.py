@@ -151,7 +151,10 @@ def grant_memberships(
     usuarios: list[str] | None = None,
     rol: str | None = None,
 ) -> list[dict[str, str]]:
-    """Da acceso al proyecto (el frontend solo lista proyectos donde hay membresía).
+    """Da acceso al proyecto vía membresía explícita.
+
+    Los gerentes globales ya ven todos los proyectos sin esta asignación;
+    la membresía sigue siendo necesaria para ingenieros, evaluadores, etc.
 
     * ``usuarios``: lista de usernames; si es None se toman todos los usuarios
       activos que NO son superusuarios (los admin ya ven todo).

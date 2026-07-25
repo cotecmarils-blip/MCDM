@@ -480,6 +480,15 @@ export const evaluacionApi = {
     api.put(`/proyectos/${proyectoId}/evaluacion/valores/`, { valores }, {
       params: { alternativa: alternativaId },
     }),
+  downloadBulkTemplate: (proyectoId) =>
+    api.get(`/proyectos/${proyectoId}/evaluacion/carga-masiva/`, {
+      responseType: 'blob',
+    }),
+  importBulkTemplate: (proyectoId, archivo) => {
+    const data = new FormData();
+    data.append('archivo', archivo);
+    return api.post(`/proyectos/${proyectoId}/evaluacion/carga-masiva/`, data);
+  },
 };
 
 export const simulacionApi = {

@@ -16,6 +16,7 @@ from .access import (
     can_read_proyecto,
     can_write_resource,
     is_global_admin,
+    is_global_manager,
     user_proyecto_ids,
 )
 from .mcdm_utils import (
@@ -355,7 +356,11 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
         ensure_all_ramas_niveles(proyecto)
         ensure_tablas_riesgo(proyecto)
         user = self.request.user
-        if user.is_authenticated and not is_global_admin(user):
+        if (
+            user.is_authenticated
+            and not is_global_admin(user)
+            and not is_global_manager(user)
+        ):
             ProyectoMembership.objects.get_or_create(
                 proyecto=proyecto,
                 usuario=user,
@@ -1078,6 +1083,52 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
 
         proyecto = self.get_object()
         return Response(build_evaluacion_schema(proyecto))
+
+    @action(
+        detail=True,
+        methods=['get', 'post'],
+        url_path='evaluacion/carga-masiva',
+    )
+    def evaluacion_carga_masiva(self, request, pk=None):
+        from django.core.exceptions import ValidationError
+        from django.http import HttpResponse
+
+        from .evaluacion_bulk_io import (
+            build_evaluacion_template,
+            import_evaluacion_template,
+        )
+
+        proyecto = self.get_object()
+        if request.method == 'GET':
+            content = build_evaluacion_template(proyecto)
+            response = HttpResponse(
+                content,
+                content_type=(
+                    'application/vnd.openxmlformats-officedocument.'
+                    'spreadsheetml.sheet'
+                ),
+            )
+            response['Content-Disposition'] = (
+                f'attachment; filename="evaluacion-proyecto-{proyecto.id}.xlsx"'
+            )
+            return response
+
+        if not can_write_resource(request.user, proyecto, 'proyecto'):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        uploaded_file = request.FILES.get('archivo')
+        if uploaded_file is None:
+            return Response(
+                {'detail': 'Debes adjuntar el archivo Excel en el campo archivo.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            result = import_evaluacion_template(proyecto, uploaded_file)
+        except ValidationError as exc:
+            return Response(
+                {'detail': exc.messages},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return Response(result)
 
     @action(detail=True, methods=['get'], url_path='curvas-utilidad')
     def curvas_utilidad(self, request, pk=None):

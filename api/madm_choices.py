@@ -83,10 +83,16 @@ def simulacion_opciones_payload(proyecto) -> dict:
             'rama_evaluacion': rama,
             'direction': rama_to_direction(rama),
         })
-    total_alternativas = Alternativa.objects.filter(proyecto=proyecto).count()
+    alternativas = list(
+        Alternativa.objects.filter(proyecto=proyecto)
+        .order_by('id')
+        .values('id', 'nombre', 'apodo', 'activa')
+    )
+    alternativas_activas = [item for item in alternativas if item['activa']]
     return {
         'dimensiones': dimensiones,
-        'total_alternativas': total_alternativas,
+        'alternativas': alternativas,
+        'total_alternativas': len(alternativas_activas),
         'normalization_methods': NORMALIZATION_METHODS,
         'weight_methods': WEIGHT_METHODS,
         'madm_methods': MADM_METHODS,
@@ -97,5 +103,6 @@ def simulacion_opciones_payload(proyecto) -> dict:
             'dimensiones_normalizar': [d['nombre'] for d in dimensiones],
             'metodo_pesos': 'equal_weights',
             'metodo_madm': 'topsis',
+            'alternativa_ids': [item['id'] for item in alternativas_activas],
         },
     }

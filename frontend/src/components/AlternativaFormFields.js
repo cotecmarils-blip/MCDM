@@ -30,6 +30,24 @@ function AlternativaFormFields({ formData, onInputChange, onFileChange, isDark, 
         />
       </div>
 
+      <label className="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-700/60 p-3 cursor-pointer">
+        <input
+          type="checkbox"
+          name="activa"
+          checked={formData.activa !== false}
+          onChange={onInputChange}
+          className="mt-0.5 rounded border-gray-300"
+        />
+        <span>
+          <span className="block text-sm font-medium text-gray-800 dark:text-gray-100">
+            Alternativa activa
+          </span>
+          <span className="block text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Las alternativas inactivas no participan en los cálculos.
+          </span>
+        </span>
+      </label>
+
       <div>
         <label className={labelClass}>Nombre corto (gráficos)</label>
         <input

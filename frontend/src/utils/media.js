@@ -100,6 +100,7 @@ export function buildAlternativaFormData(data) {
     formData.append('costo', data.costo);
   }
   formData.append('costo_unidad', data.costo_unidad || 'MUSD');
+  formData.append('activa', data.activa === false ? 'false' : 'true');
   if (data.foto) formData.append('foto', data.foto);
   if (data.anexo) formData.append('anexo', data.anexo);
   return formData;

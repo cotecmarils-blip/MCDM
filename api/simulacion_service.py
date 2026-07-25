@@ -379,16 +379,36 @@ def _validar_constantes_terminal(
     return faltantes
 
 
-def validar_simulacion(proyecto: Proyecto) -> dict[str, Any]:
+def _alternativas_para_calculo(
+    proyecto: Proyecto,
+    opciones: dict[str, Any] | None = None,
+):
+    qs = Alternativa.objects.filter(proyecto=proyecto, activa=True).order_by('id')
+    selected_ids = (opciones or {}).get('alternativa_ids')
+    if selected_ids is not None:
+        if not isinstance(selected_ids, (list, tuple, set)):
+            raise ValidationError('alternativa_ids debe ser una lista de ids.')
+        try:
+            ids = {int(value) for value in selected_ids}
+        except (TypeError, ValueError) as exc:
+            raise ValidationError('alternativa_ids contiene un id inválido.') from exc
+        qs = qs.filter(id__in=ids)
+    return qs
+
+
+def validar_simulacion(
+    proyecto: Proyecto,
+    opciones: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Comprueba matrices de evaluación y constantes antes de calcular."""
     faltantes: list[dict[str, Any]] = []
     schema = build_evaluacion_schema(proyecto)
-    alternativas = list(Alternativa.objects.filter(proyecto=proyecto).order_by('id'))
+    alternativas = list(_alternativas_para_calculo(proyecto, opciones))
 
     if not alternativas:
         faltantes.append(_faltante(
             'configuracion',
-            'No hay alternativas definidas.',
+            'No hay alternativas activas seleccionadas para el cálculo.',
             modulo='Gestión de alternativas',
         ))
 
@@ -1426,11 +1446,12 @@ def _calcular_dimension_con_resumen_escenarios(
 def _rollup_alternativas_simulacion(
     proyecto: Proyecto,
     *,
+    opciones: dict[str, Any] | None = None,
     debug_logs: list[str] | None = None,
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Utilidades por alternativa y dimensión (entrada al pipeline MADM)."""
     schema = build_evaluacion_schema(proyecto)
-    alternativas = list(Alternativa.objects.filter(proyecto=proyecto).order_by('id'))
+    alternativas = list(_alternativas_para_calculo(proyecto, opciones))
     resultados = []
 
     _sim_log(debug_logs, f'=== ROLLUP proyecto_id={proyecto.id} ===')
@@ -1504,7 +1525,7 @@ def preview_simulacion(
     opciones: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Vista previa en vivo: matrices y resultados parciales del pipeline."""
-    validacion = validar_simulacion(proyecto)
+    validacion = validar_simulacion(proyecto, opciones)
     if not validacion['ok']:
         total = validacion['total_faltantes']
         return {
@@ -1535,7 +1556,9 @@ def preview_simulacion(
     )
 
     try:
-        resultados, dimensiones_meta = _rollup_alternativas_simulacion(proyecto)
+        resultados, dimensiones_meta = _rollup_alternativas_simulacion(
+            proyecto, opciones=opciones,
+        )
         filtered_meta = filter_dimensiones_meta(dimensiones_meta, opciones)
         matrix, alt_names, dim_names, directions = build_matrix_from_rollups(
             resultados,
@@ -1567,7 +1590,7 @@ def calcular_simulacion(
     opciones: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Rollup por dimensión y ranking MADM (Pareto → normalización → pesos → método)."""
-    validacion = validar_simulacion(proyecto)
+    validacion = validar_simulacion(proyecto, opciones)
     if not validacion['ok']:
         return {
             'ok': False,
@@ -1583,7 +1606,7 @@ def calcular_simulacion(
     _sim_log(debug_logs, f'=== INICIO SIMULACIÓN proyecto_id={proyecto.id} ===')
 
     resultados, dimensiones_meta = _rollup_alternativas_simulacion(
-        proyecto, debug_logs=debug_logs,
+        proyecto, opciones=opciones, debug_logs=debug_logs,
     )
 
     if solo_matriz:

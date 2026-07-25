@@ -79,7 +79,8 @@ class AlternativaSerializer(serializers.ModelSerializer):
         model = Alternativa
         fields = [
             'id', 'proyecto', 'nombre', 'apodo', 'descripcion', 'referencia',
-            'costo', 'costo_unidad', 'foto', 'anexo', 'documentos', 'capacidades', 'caracteristicas',
+            'costo', 'costo_unidad', 'activa', 'foto', 'anexo', 'documentos',
+            'capacidades', 'caracteristicas',
             'fecha_creacion', 'fecha_actualizacion',
         ]
         read_only_fields = ['id', 'fecha_creacion', 'fecha_actualizacion']

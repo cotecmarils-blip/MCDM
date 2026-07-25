@@ -177,6 +177,10 @@ class Alternativa(models.Model):
         choices=COSTO_UNIDAD_CHOICES,
         default=COSTO_MUSD,
     )
+    activa = models.BooleanField(
+        default=True,
+        help_text='Determina si la alternativa participa por defecto en los cálculos.',
+    )
     foto = models.ImageField(
         upload_to=alternativa_foto_upload,
         max_length=FILE_FIELD_MAX_LENGTH,

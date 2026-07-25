@@ -68,6 +68,7 @@ export function buildPreviewPayload(calcConfig, allDimensiones = []) {
   const payload = {
     direcciones: calcConfig.direcciones || {},
     dimensiones_normalizar: calcConfig.dimensiones_normalizar || [],
+    alternativa_ids: calcConfig.alternativa_ids || [],
   };
 
   if (calcConfig.aplicar_pareto !== null && calcConfig.aplicar_pareto !== undefined) {
@@ -115,6 +116,7 @@ export function createEmptyCalcConfig(dimensiones = [], defaults = {}) {
     metodo_pesos: defaults.metodo_pesos || 'equal_weights',
     metodo_madm: defaults.metodo_madm || 'topsis',
     pesos_usuario: dimensiones.map(() => ''),
+    alternativa_ids: defaults.alternativa_ids || [],
   };
 }
 
@@ -130,6 +132,9 @@ export function validateWizardStep(stepId, config, opcionesMeta) {
       return { ok: true };
 
     case 'direcciones': {
+      if (!(config?.alternativa_ids || []).length) {
+        return { ok: false, message: 'Seleccione al menos una alternativa para el cálculo.' };
+      }
       if (!activas.length) {
         return { ok: false, message: 'Seleccione al menos una dimensión para el cálculo.' };
       }

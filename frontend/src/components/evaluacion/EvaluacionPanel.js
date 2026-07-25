@@ -69,8 +69,10 @@ function EvaluacionPanel({ proyectoId, canWrite = true }) {
   const [exportingCurvasWord, setExportingCurvasWord] = useState(false);
   const [exportingCostos, setExportingCostos] = useState(false);
   const [exportingProyecto, setExportingProyecto] = useState(false);
+  const [bulkLoading, setBulkLoading] = useState(false);
   const [proyectoExportProgress, setProyectoExportProgress] = useState(null);
   const watchGenerationRef = useRef(0);
+  const bulkFileRef = useRef(null);
 
   const persistInformeJobId = useCallback((jobId) => {
     try {
@@ -446,6 +448,48 @@ function EvaluacionPanel({ proyectoId, canWrite = true }) {
     }
   };
 
+  const handleDownloadBulkTemplate = async () => {
+    try {
+      setBulkLoading(true);
+      const response = await evaluacionApi.downloadBulkTemplate(proyectoId);
+      const url = window.URL.createObjectURL(response.data);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `evaluacion-proyecto-${proyectoId}.xlsx`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError('No se pudo descargar la plantilla de evaluación.');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const handleImportBulkTemplate = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      setBulkLoading(true);
+      const response = await evaluacionApi.importBulkTemplate(proyectoId, file);
+      const count = response.data?.alternativas_actualizadas || 0;
+      setError(null);
+      if (selectedId) await loadValores(selectedId);
+      window.alert(`Carga completada: ${count} alternativa(s) actualizada(s).`);
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      setError(
+        Array.isArray(detail)
+          ? detail.join('\n')
+          : detail || 'No se pudo importar la plantilla de evaluación.'
+      );
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   const rightContent = () => {
     if (loadingAlt || loadingSchema) {
       return (
@@ -529,6 +573,25 @@ function EvaluacionPanel({ proyectoId, canWrite = true }) {
           <span />
         )}
         <div className="flex flex-wrap items-center gap-2 ml-auto">
+          {canWrite && (
+            <>
+              <input
+                ref={bulkFileRef}
+                type="file"
+                accept=".xlsx"
+                onChange={handleImportBulkTemplate}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => bulkFileRef.current?.click()}
+                disabled={bulkLoading}
+                className="btn-sm border border-navy-300 dark:border-navy-600 text-navy-700 dark:text-navy-300 disabled:opacity-50"
+              >
+                {bulkLoading ? 'Procesando…' : 'Importar evaluación Excel'}
+              </button>
+            </>
+          )}
           <ExportablesDropdown
             label={
               exportingProyecto
@@ -537,6 +600,14 @@ function EvaluacionPanel({ proyectoId, canWrite = true }) {
             }
             disabled={loadingSchema}
             items={[
+              {
+                key: 'evaluacion-excel',
+                label: bulkLoading ? 'Preparando Excel…' : 'Plantilla de evaluación (Excel)',
+                description:
+                  'Descarga todos los inputs por alternativa para diligenciarlos fuera del software.',
+                onClick: handleDownloadBulkTemplate,
+                disabled: bulkLoading || loadingSchema,
+              },
               {
                 key: 'informe-proyecto',
                 label: exportingProyecto
