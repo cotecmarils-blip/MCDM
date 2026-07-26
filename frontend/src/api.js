@@ -184,6 +184,7 @@ export const proyectos = {
       params: { fuente: fuenteProyectoId },
     }),
   importarConfig: (id, data) => api.post(`/proyectos/${id}/importar-config/`, data),
+  duplicar: (id, data = {}) => api.post(`/proyectos/${id}/duplicar/`, data),
   exportArbol: (id, omoeId) =>
     api.get(`/proyectos/${id}/export-arbol/`, {
       params: omoeId ? { omoe: omoeId } : {},

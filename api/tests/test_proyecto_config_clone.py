@@ -14,10 +14,12 @@ from api.models import (
     Omoe,
     Proyecto,
     ProyectoNivelArbol,
+    Requisito,
     ValorEvaluacion,
 )
 from api.arbol_nivel_service import ensure_niveles_arbol
 from api.proyecto_config_clone_service import (
+    duplicar_proyecto,
     importar_config_proyecto,
     preview_config_proyecto,
 )
@@ -88,6 +90,13 @@ class ProyectoConfigCloneTests(TestCase):
             nodo_id=self.nodo.id,
             valor='22',
         )
+        Requisito.objects.create(
+            proyecto=self.src,
+            codigo='R-1',
+            titulo='Autonomía mínima',
+            descripcion='Al menos 10 días',
+            prioridad='alta',
+        )
 
     def test_preview_lists_entities(self):
         data = preview_config_proyecto(self.src)
@@ -118,6 +127,22 @@ class ProyectoConfigCloneTests(TestCase):
         dest_omoe = Omoe.objects.get(pk=result['dimensiones'][0]['omoe_id'])
         self.assertEqual(dest_omoe.nodos.count(), 1)
         # Escenario Combate debe existir en destino
+        self.assertTrue(
+            Escenario.objects.filter(omoe=dest_omoe, nombre='Combate').exists()
+        )
+
+    def test_duplicar_proyecto_crea_nuevo_con_config_completa(self):
+        result = duplicar_proyecto(self.src, usuario=self.user, nombre='Fuente (copia)')
+        nuevo = Proyecto.objects.get(pk=result['proyecto_id'])
+        self.assertEqual(nuevo.nombre, 'Fuente (copia)')
+        self.assertEqual(result['requisitos_copiados'], 1)
+        self.assertEqual(result['alternativas_copiadas'], 1)
+        self.assertEqual(len(result['dimensiones']), 1)
+        self.assertEqual(result['valores_copiados'], 1)
+        self.assertEqual(nuevo.requisitos.count(), 1)
+        self.assertEqual(nuevo.alternativas.count(), 1)
+        dest_omoe = nuevo.omoes.first()
+        self.assertEqual(dest_omoe.nombre_modelo, 'Desempeño')
         self.assertTrue(
             Escenario.objects.filter(omoe=dest_omoe, nombre='Combate').exists()
         )

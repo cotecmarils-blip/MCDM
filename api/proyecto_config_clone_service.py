@@ -27,6 +27,8 @@ from .models import (
     Omoe,
     PesoGrupoAhp,
     Proyecto,
+    ProyectoMembership,
+    Requisito,
     ValorEvaluacion,
 )
 from .peso_service import _q2
@@ -38,6 +40,21 @@ ALT_COPY_FIELDS = (
     'referencia',
     'costo',
     'costo_unidad',
+    'activa',
+)
+
+PROYECTO_COPY_FIELDS = (
+    'descripcion',
+    'eslora_maxima',
+    'desplazamiento',
+    'velocidad_maxima',
+    'velocidad_crucero',
+    'tripulacion',
+    'autonomia',
+    'propulsion',
+    'posicionamiento_dinamico',
+    'laboratorios',
+    'otras_caracteristicas',
 )
 
 CONFIG_NODO_COPY_FIELDS = (
@@ -457,6 +474,7 @@ def importar_config_proyecto(
     escenario_ids: list[int] | None = None,
     alternativa_ids: list[int] | None = None,
     incluir_valores: bool = False,
+    preserve_nombres: bool = False,
 ) -> dict[str, Any]:
     """
     Importa configuración seleccionada desde ``fuente`` hacia ``destino``.
@@ -465,6 +483,7 @@ def importar_config_proyecto(
     - Si ``escenario_ids`` es None y hay dimensiones → todos los escenarios de esas dims.
     - Si ``alternativa_ids`` es None → no copia alternativas (hay que pedirlas explícitamente
       con lista o con la marca especial ``'all'`` manejada por la vista).
+    - ``preserve_nombres``: conserva el nombre original de cada dimensión (útil al duplicar).
     """
     if fuente.id == destino.id:
         raise ValidationError('No se puede importar la configuración del mismo proyecto.')
@@ -490,7 +509,10 @@ def importar_config_proyecto(
     dims_created = []
 
     for src_omoe in omoes:
-        result = clonar_dimension_en_proyecto(src_omoe, destino)
+        clone_kwargs = {}
+        if preserve_nombres:
+            clone_kwargs['nombre_modelo'] = src_omoe.nombre_modelo
+        result = clonar_dimension_en_proyecto(src_omoe, destino, **clone_kwargs)
         omoe_map[src_omoe.id] = result['omoe_id']
         nodo_map.update(result.get('nodo_map') or {})
         dims_created.append({
@@ -556,3 +578,115 @@ def importar_config_proyecto(
         'alternativa_map': alt_map,
         'nodos_copiados': len(nodo_map),
     }
+
+
+def _unique_proyecto_nombre(base: str) -> str:
+    nombre = (base or '').strip() or 'Proyecto'
+    if not Proyecto.objects.filter(nombre=nombre).exists():
+        return nombre
+    for idx in range(2, 100):
+        candidate = f'{nombre} ({idx})'
+        if not Proyecto.objects.filter(nombre=candidate).exists():
+            return candidate
+    return f'{nombre} ({Proyecto.objects.count() + 1})'
+
+
+def _clone_requisitos(fuente: Proyecto, destino: Proyecto) -> int:
+    created = 0
+    for req in Requisito.objects.filter(proyecto=fuente).order_by('orden', 'id'):
+        Requisito.objects.create(
+            proyecto=destino,
+            codigo=req.codigo or '',
+            titulo=req.titulo,
+            descripcion=req.descripcion or '',
+            categoria=req.categoria or '',
+            prioridad=req.prioridad,
+            estado=req.estado,
+            criterio_aceptacion=req.criterio_aceptacion or '',
+            observaciones=req.observaciones or '',
+            orden=req.orden or 0,
+        )
+        created += 1
+    return created
+
+
+def _copy_proyecto_foto(fuente: Proyecto, destino: Proyecto) -> bool:
+    if not fuente.foto:
+        return False
+    try:
+        from django.core.files.base import ContentFile
+
+        fuente.foto.open('rb')
+        content = fuente.foto.read()
+        fuente.foto.close()
+        name = fuente.foto.name.rsplit('/', 1)[-1]
+        destino.foto.save(name, ContentFile(content), save=True)
+        return True
+    except Exception:
+        return False
+
+
+@transaction.atomic
+def duplicar_proyecto(
+    fuente: Proyecto,
+    *,
+    usuario=None,
+    nombre: str | None = None,
+) -> dict[str, Any]:
+    """
+    Crea un proyecto nuevo con la configuración completa de ``fuente``.
+
+    Copia: datos generales, requisitos, dimensiones/árboles, escenarios,
+    alternativas (sin fotos/anexos) y valores de evaluación.
+    No copia: historial de simulaciones, informes, membresías de terceros ni auditorías.
+    """
+    from .arbol_nivel_service import ensure_all_ramas_niveles
+    from .riesgo_tabla_service import ensure_tablas_riesgo
+
+    base_nombre = (nombre or '').strip() or f'{fuente.nombre} (copia)'
+    dest_kwargs = {field: getattr(fuente, field) or '' for field in PROYECTO_COPY_FIELDS}
+    destino = Proyecto.objects.create(
+        nombre=_unique_proyecto_nombre(base_nombre),
+        **dest_kwargs,
+    )
+    ensure_all_ramas_niveles(destino)
+    ensure_tablas_riesgo(destino)
+    foto_copiada = _copy_proyecto_foto(fuente, destino)
+
+    if usuario is not None and getattr(usuario, 'is_authenticated', False):
+        from .access import is_global_admin, is_global_manager
+
+        if not is_global_admin(usuario) and not is_global_manager(usuario):
+            ProyectoMembership.objects.get_or_create(
+                proyecto=destino,
+                usuario=usuario,
+                defaults={'rol': ProyectoMembership.ROL_JEFE},
+            )
+
+    requisitos_copiados = _clone_requisitos(fuente, destino)
+
+    omoe_ids = list(Omoe.objects.filter(proyecto=fuente).values_list('id', flat=True))
+    escenario_ids = list(Escenario.objects.filter(proyecto=fuente).values_list('id', flat=True))
+    alternativa_ids = list(
+        Alternativa.objects.filter(proyecto=fuente).values_list('id', flat=True)
+    )
+    config = importar_config_proyecto(
+        fuente,
+        destino,
+        omoe_ids=omoe_ids,
+        escenario_ids=escenario_ids or None,
+        alternativa_ids=alternativa_ids if alternativa_ids else None,
+        incluir_valores=bool(alternativa_ids and omoe_ids),
+        preserve_nombres=True,
+    )
+
+    return {
+        'proyecto_id': destino.id,
+        'nombre': destino.nombre,
+        'fuente_proyecto_id': fuente.id,
+        'foto_copiada': foto_copiada,
+        'requisitos_copiados': requisitos_copiados,
+        **{k: v for k, v in config.items() if k not in {'fuente_proyecto_id', 'destino_proyecto_id'}},
+        'destino_proyecto_id': destino.id,
+    }
+

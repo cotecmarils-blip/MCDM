@@ -1,11 +1,48 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { proyectos } from '../api';
+import { useAuth } from '../context/AuthContext';
 import { resolveMediaUrl } from '../utils/media';
 import ImportarConfigProyectoModal from './ImportarConfigProyectoModal';
 
 function ProjectInfoPanel({ proyecto, proyectoId, canWrite = false, onConfigImported }) {
   const requisitosCount = proyecto?.requisitos?.length || 0;
   const [importOpen, setImportOpen] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+  const [dupError, setDupError] = useState(null);
+  const { puedeCrearProyecto } = useAuth();
+  const navigate = useNavigate();
+
+  const handleDuplicar = async () => {
+    if (duplicating) return;
+    const ok = window.confirm(
+      'Se creará un proyecto nuevo con la configuración completa de este '
+      + '(dimensiones, escenarios, alternativas, evaluación y requisitos).\n\n'
+      + 'No se copian fotos/anexos de alternativas ni el historial de cálculos.\n\n'
+      + '¿Continuar?',
+    );
+    if (!ok) return;
+    setDuplicating(true);
+    setDupError(null);
+    try {
+      const res = await proyectos.duplicar(proyectoId);
+      const nuevoId = res.data?.proyecto?.id;
+      if (nuevoId) {
+        navigate(`/proyecto/${nuevoId}`);
+        return;
+      }
+      setDupError('El proyecto se duplicó, pero no se recibió el id del nuevo proyecto.');
+    } catch (err) {
+      const detail = err.response?.data?.detail;
+      setDupError(
+        Array.isArray(detail)
+          ? detail.join(' ')
+          : (detail || 'No se pudo duplicar el proyecto.'),
+      );
+    } finally {
+      setDuplicating(false);
+    }
+  };
 
   return (
     <div className="space-y-6 w-full">
@@ -17,6 +54,16 @@ function ProjectInfoPanel({ proyecto, proyectoId, canWrite = false, onConfigImpo
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {puedeCrearProyecto && (
+            <button
+              type="button"
+              onClick={handleDuplicar}
+              disabled={duplicating}
+              className="btn-sm border border-emerald-600 text-emerald-800 dark:text-emerald-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 disabled:opacity-50"
+            >
+              {duplicating ? 'Duplicando…' : 'Duplicar proyecto'}
+            </button>
+          )}
           {canWrite && (
             <button
               type="button"
@@ -31,6 +78,12 @@ function ProjectInfoPanel({ proyecto, proyectoId, canWrite = false, onConfigImpo
           </Link>
         </div>
       </div>
+
+      {dupError && (
+        <div className="rounded-lg border border-red-300 bg-red-50 dark:bg-red-950/30 px-3 py-2 text-sm text-red-700 dark:text-red-300">
+          {dupError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-[18rem_minmax(0,1fr)] gap-6 items-start">
         <div className="space-y-4">
@@ -68,6 +121,27 @@ function ProjectInfoPanel({ proyecto, proyectoId, canWrite = false, onConfigImpo
               </dd>
             </div>
           </div>
+
+          {puedeCrearProyecto && (
+            <div className="rounded-2xl border border-dashed border-emerald-300 dark:border-emerald-800 bg-emerald-50/70 dark:bg-emerald-950/20 p-5 space-y-3">
+              <h3 className="text-sm font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
+                Duplicar proyecto
+              </h3>
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-6">
+                Crea un proyecto nuevo con toda la configuración de este: dimensiones, escenarios,
+                alternativas, evaluación y requisitos. Las fotos de alternativas y el historial
+                de cálculos no se copian.
+              </p>
+              <button
+                type="button"
+                onClick={handleDuplicar}
+                disabled={duplicating}
+                className="btn-sm bg-emerald-700 text-white hover:bg-emerald-600 disabled:opacity-50"
+              >
+                {duplicating ? 'Duplicando…' : 'Duplicar este proyecto'}
+              </button>
+            </div>
+          )}
 
           {canWrite && (
             <div className="rounded-2xl border border-dashed border-navy-300 dark:border-navy-700 bg-navy-50/70 dark:bg-navy-950/30 p-5 space-y-3">

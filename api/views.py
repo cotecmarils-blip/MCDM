@@ -12,6 +12,7 @@ from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 import unicodedata
 
 from .access import (
+    can_create_proyecto,
     can_manage_members,
     can_read_proyecto,
     can_write_resource,
@@ -366,6 +367,52 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
                 usuario=user,
                 defaults={'rol': ProyectoMembership.ROL_JEFE},
             )
+
+    @action(detail=True, methods=['post'], url_path='duplicar')
+    def duplicar(self, request, pk=None):
+        """Crea un proyecto nuevo clonando la configuración completa del actual."""
+        from django.core.exceptions import ValidationError as DjangoValidationError
+
+        from .proyecto_config_clone_service import duplicar_proyecto
+
+        fuente = self.get_object()
+        if not can_read_proyecto(request.user, fuente.id):
+            return Response(
+                {'detail': 'Sin permiso para leer este proyecto.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if not can_create_proyecto(request.user):
+            return Response(
+                {'detail': 'Sin permiso para crear proyectos.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        nombre = request.data.get('nombre')
+        try:
+            result = duplicar_proyecto(
+                fuente,
+                usuario=request.user,
+                nombre=nombre if isinstance(nombre, str) else None,
+            )
+        except DjangoValidationError as exc:
+            detail = exc.messages if hasattr(exc, 'messages') else [str(exc)]
+            return Response({'detail': detail}, status=status.HTTP_400_BAD_REQUEST)
+
+        destino = Proyecto.objects.filter(pk=result['proyecto_id']).first()
+        payload = {
+            'proyecto': ProyectoSerializer(destino).data if destino else {'id': result['proyecto_id']},
+            'resumen': {
+                'nombre': result.get('nombre'),
+                'dimensiones': len(result.get('dimensiones') or []),
+                'escenarios_copiados': result.get('escenarios_copiados', 0),
+                'alternativas_copiadas': result.get('alternativas_copiadas', 0),
+                'valores_copiados': result.get('valores_copiados', 0),
+                'requisitos_copiados': result.get('requisitos_copiados', 0),
+                'nodos_copiados': result.get('nodos_copiados', 0),
+                'foto_copiada': result.get('foto_copiada', False),
+            },
+        }
+        return Response(payload, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=['get'], url_path='catalogo-dimensiones')
     def catalogo_dimensiones(self, request, pk=None):
