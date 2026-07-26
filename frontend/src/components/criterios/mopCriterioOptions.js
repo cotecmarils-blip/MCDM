@@ -22,11 +22,13 @@ export const FAMILIAS_POR_TIPO = {
     { value: 'razon_relativa', label: 'Razón relativa' },
     { value: 'min_max', label: 'Min-max' },
     { value: 'meta_saturada', label: 'Meta saturada' },
+    { value: 'umbral_creciente', label: 'Umbral creciente' },
     { value: 'exponencial_creciente', label: 'Exponencial creciente' },
   ],
   menos_es_mejor: [
     { value: 'razon_inversa', label: 'Razón inversa' },
     { value: 'min_max_decreciente', label: 'Min-max decreciente' },
+    { value: 'umbral_decreciente', label: 'Umbral decreciente' },
     { value: 'exponencial_decreciente', label: 'Exponencial decreciente' },
   ],
   menos_es_mejor_penalizacion: [
@@ -49,13 +51,11 @@ export const FAMILIAS_POR_TIPO = {
 };
 
 /**
- * Familias retiradas del selector por ser redundantes o no evaluables.
+ * Familias retiradas del selector por ser redundantes.
  * Se remapean a su equivalente vigente para que criterios ya guardados
  * conserven el mismo comportamiento numérico al editarlos.
  */
 export const LEGACY_FAMILIA_ALIAS = {
-  umbral_creciente: 'min_max',
-  umbral_decreciente: 'min_max_decreciente',
   // «Tablas de equivalencia» era idéntica a «Escalas discretas» (mapa discreto
   // categoría→utilidad). Se fusiona en una sola opción.
   tablas_equivalencia: 'escalas_discretas',

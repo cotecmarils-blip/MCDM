@@ -101,8 +101,9 @@ def build_utility_function(dp: DpCriterio, mop: MopCriterio) -> dict[str, Any]:
     - **Trapezoidal** → ``TrapezoidalUtilityFunction`` (meseta M1–M2)
     - **Distancia a meta** / **Distancia al ideal** → ``DistanceUtilityFunction``
     - **Umbral de veto** → ``VetoUtilityFunction`` (0 si x ≥ V)
-    - **Min-max** / **Min-max decreciente** (y legacy **Umbral creciente/decreciente**,
-      **Funciones por tramos**) → ``LinearUtilityFunction`` (normalización min–max L–U)
+    - **Min-max** / **Min-max decreciente** / **Umbral creciente** /
+      **Umbral decreciente** (y **Funciones por tramos**) → ``LinearUtilityFunction``
+      (normalización min–max L–U)
 
     Parámetros habituales: L, U (límites), k (pendiente), T/S (meta/saturación),
     x0 (inflexión logística), V (veto), M/M1/M2 (óptimo/meseta), I/dmax (ideal).
@@ -248,7 +249,7 @@ def build_utility_function(dp: DpCriterio, mop: MopCriterio) -> dict[str, Any]:
             return {'type': 'DiscreteUtilityFunction', 'mapping': mapping}
 
     # Fallback lineal (normalización min–max L–U): Min-max, Min-max decreciente,
-    # Umbral creciente/decreciente (legacy) y Funciones por tramos (sin evaluador).
+    # Umbral creciente/decreciente y Funciones por tramos (sin evaluador).
     return {'type': 'LinearUtilityFunction', **base}
 
 
