@@ -13,6 +13,7 @@ import unicodedata
 
 from .access import (
     can_create_proyecto,
+    can_delete_proyecto,
     can_manage_members,
     can_read_proyecto,
     can_write_resource,
@@ -908,18 +909,45 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         body = request.data if isinstance(request.data, dict) else {}
-        password = (body.get('password') or '').strip()
+        password = (body.get('password') or request.query_params.get('password') or '').strip()
         if not password:
             return Response(
-                {'password': ['Indique su contraseña para confirmar la eliminación.']},
+                {
+                    'detail': 'Indique su contraseña para confirmar la eliminación.',
+                    'password': ['Indique su contraseña para confirmar la eliminación.'],
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if not request.user.check_password(password):
             return Response(
-                {'password': ['Contraseña incorrecta.']},
+                {
+                    'detail': 'Contraseña incorrecta.',
+                    'password': ['Contraseña incorrecta.'],
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
-        return super().destroy(request, *args, **kwargs)
+        instance = self.get_object()
+        if not can_delete_proyecto(request.user, instance):
+            return Response(
+                {'detail': 'Sin permiso para eliminar este proyecto. Se requiere rol Gerente.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except Exception as exc:
+            from django.db.models.deletion import ProtectedError
+
+            if isinstance(exc, ProtectedError):
+                return Response(
+                    {
+                        'detail': (
+                            'No se pudo eliminar el proyecto porque tiene datos '
+                            'protegidos asociados. Contacte al administrador.'
+                        ),
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+            raise
 
     @action(detail=True, methods=['get'], url_path='requisitos/export')
     def export_requisitos(self, request, pk=None):

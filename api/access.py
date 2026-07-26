@@ -266,16 +266,18 @@ def get_membership(user, proyecto_id):
         .select_related('proyecto')
         .first()
     )
-    if membership is not None:
-        return membership
+    # Gerente global: privilegio JEFE en todos los proyectos, aunque tenga
+    # otra membresía local (p. ej. analista) o ninguna autoasignación.
     if is_global_manager(user):
+        if membership is not None and membership.rol == ProyectoMembership.ROL_JEFE:
+            return membership
         return ProyectoMembership(
             usuario=user,
             proyecto_id=proyecto_id,
             rol=ProyectoMembership.ROL_JEFE,
             activo=True,
         )
-    return None
+    return membership
 
 
 def user_proyecto_ids(user):
@@ -765,9 +767,10 @@ def can_write_resource(user, obj, resource_kind='generic'):
 
 
 def can_delete_proyecto(user, proyecto):
-    if is_global_admin(user):
+    """Super Admin y Gerente pueden eliminar cualquier proyecto."""
+    if is_global_admin(user) or is_global_manager(user):
         return True
-    membership = get_membership(user, proyecto.id)
+    membership = get_membership(user, getattr(proyecto, 'id', None))
     return membership is not None and membership.rol == ProyectoMembership.ROL_JEFE
 
 

@@ -64,3 +64,15 @@ class GlobalManagerAccessTests(TestCase):
             ).exists()
         )
 
+    def test_gerente_puede_eliminar_proyecto_sin_membresia_local(self):
+        response = self.client.delete(
+            f'/api/proyectos/{self.proyecto_sin_asignacion.id}/',
+            {'password': 'test-password'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 204)
+        self.assertFalse(
+            Proyecto.objects.filter(pk=self.proyecto_sin_asignacion.id).exists()
+        )
+

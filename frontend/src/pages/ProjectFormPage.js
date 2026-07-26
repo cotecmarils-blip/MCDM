@@ -128,7 +128,10 @@ function ProjectFormPage() {
         return;
       }
       const detail = data?.detail || data?.mensaje;
-      alert(detail || 'No se pudo eliminar el proyecto. Verifique sus permisos.');
+      const msg = Array.isArray(detail)
+        ? detail.join(' ')
+        : (detail || 'No se pudo eliminar el proyecto. Verifique sus permisos.');
+      setDeletePasswordError(msg);
     } finally {
       setDeleting(false);
     }
