@@ -904,8 +904,9 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         """Elimina el proyecto y, por CASCADE en BD, todo lo asociado al mismo."""
-        with transaction.atomic():
-            instance.delete()
+        from .proyecto_delete_service import delete_proyecto
+
+        delete_proyecto(instance)
 
     def destroy(self, request, *args, **kwargs):
         body = request.data if isinstance(request.data, dict) else {}

@@ -123,16 +123,12 @@ def _detect_missions(branch: dict) -> list[tuple[int, dict]] | None:
 
 
 def _delete_proyectos_por_nombre(nombre: str) -> int:
-    """Elimina proyectos con ese nombre respetando el FK PROTECT de tipo_nivel.
+    """Elimina proyectos con ese nombre respetando el FK PROTECT de tipo_nivel."""
+    from .proyecto_delete_service import delete_proyecto
 
-    ``NodoArbol.tipo_nivel`` protege a ``ProyectoNivelArbol``; hay que borrar los
-    nodos (y su config de escenario en cascada) antes que los niveles y el proyecto.
-    """
     proyectos = list(Proyecto.objects.filter(nombre=nombre))
     for proyecto in proyectos:
-        NodoArbol.objects.filter(omoe__proyecto=proyecto).delete()
-        ProyectoNivelArbol.objects.filter(proyecto=proyecto).delete()
-        proyecto.delete()
+        delete_proyecto(proyecto)
     return len(proyectos)
 
 
