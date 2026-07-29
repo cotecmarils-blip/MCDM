@@ -641,8 +641,9 @@ class SequentialConvergenceMonitor:
         )
 
         if self.previous_acceptability is None:
-            rank_change = math.inf
-            quantile_change = math.inf
+            # Primera muestra: sin Δ previo. Evitar math.inf (rompe JSON estricto de DRF).
+            rank_change = float('nan')
+            quantile_change = float('nan')
             leader_stable = False
         else:
             rank_change = float(

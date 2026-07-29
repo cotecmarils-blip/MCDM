@@ -1,3 +1,5 @@
+import json
+
 from django.test import SimpleTestCase
 
 from api.simulacion_sensibilidad_service import (
@@ -78,6 +80,8 @@ class StochasticSensibilidadTests(SimpleTestCase):
         for item in payload['alternatives']:
             self.assertEqual(len(item['rank_frequency']), 2)
             self.assertAlmostEqual(sum(item['rank_frequency']), 1.0, places=5)
+        # DRF JSONRenderer (strict) rechaza nan/inf — mismo criterio aquí.
+        json.dumps(payload, allow_nan=False)
 
     def test_muestras_se_acotan(self):
         payload = build_stochastic_sensibilidad_from_resultado(

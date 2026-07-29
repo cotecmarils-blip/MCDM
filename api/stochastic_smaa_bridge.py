@@ -36,25 +36,38 @@ class PassthroughNormalizer:
         raise ValueError('Matriz con rangos no soportados.')
 
 
+def _json_float(val: Any) -> Any:
+    """Convierte a float JSON-safe; nan/inf → None (DRF usa allow_nan=False)."""
+    if val is None:
+        return None
+    try:
+        if isinstance(val, (bool, np.bool_)):
+            return bool(val)
+        num = float(val)
+    except (TypeError, ValueError):
+        return val
+    if not np.isfinite(num):
+        return None
+    return num
+
+
 def _df_records(df) -> list[dict[str, Any]]:
     out = []
     for idx, row in df.iterrows():
         item = {'id': str(idx)}
         for col, val in row.items():
-            try:
-                item[str(col)] = None if val is None or (isinstance(val, float) and np.isnan(val)) else float(val)
-            except (TypeError, ValueError):
-                item[str(col)] = val
+            item[str(col)] = _json_float(val)
         out.append(item)
     return out
 
 
 def _series_map(series) -> dict[str, float]:
-    return {
-        str(k): float(v)
-        for k, v in series.items()
-        if v is not None and not (isinstance(v, float) and np.isnan(v))
-    }
+    out: dict[str, float] = {}
+    for k, v in series.items():
+        num = _json_float(v)
+        if isinstance(num, float):
+            out[str(k)] = num
+    return out
 
 
 def _matrix_nested(df) -> dict[str, Any]:
@@ -62,7 +75,7 @@ def _matrix_nested(df) -> dict[str, Any]:
         'index': [str(i) for i in df.index],
         'columns': [str(c) for c in df.columns],
         'values': [
-            [None if (isinstance(v, float) and np.isnan(v)) else float(v) for v in row]
+            [_json_float(v) for v in row]
             for row in df.to_numpy(dtype=float)
         ],
     }
