@@ -6,6 +6,10 @@ export function buildConfigMapFromArbolPayload(payload) {
     map[n.nodo_id] = {
       peso: n.peso,
       aplica: n.aplica !== false,
+      tipo_criterio: n.tipo_criterio || '',
+      familia_funciones: n.familia_funciones || '',
+      parametros_funcion: n.parametros_funcion || {},
+      es_terminal: Boolean(n.es_terminal),
     };
   }
   return map;
@@ -27,6 +31,17 @@ function applyEscenarioToNodo(node, configMap) {
     ...node,
     peso: c.peso,
     aplica: c.aplica,
+    // Utilidad efectiva del escenario (para formulario e indicadores).
+    tipo_criterio: c.tipo_criterio || node.tipo_criterio || '',
+    familia_funciones: c.familia_funciones || node.familia_funciones || '',
+    parametros_funcion: (
+      c.parametros_funcion
+      && typeof c.parametros_funcion === 'object'
+      && Object.keys(c.parametros_funcion).length
+    )
+      ? c.parametros_funcion
+      : (node.parametros_funcion || {}),
+    es_terminal_escenario: c.es_terminal,
   };
 }
 
@@ -39,13 +54,27 @@ function walkNodos(nodos, configMap) {
 
 export function patchNodeInConfigByOmoe(configByOmoe, omoeId, nodoId, patch) {
   const prev = configByOmoe?.[omoeId] || {};
+  const cur = prev[nodoId] || {};
   return {
     ...configByOmoe,
     [omoeId]: {
       ...prev,
       [nodoId]: {
-        peso: patch.peso ?? prev[nodoId]?.peso ?? 0,
-        aplica: patch.aplica !== undefined ? patch.aplica : prev[nodoId]?.aplica !== false,
+        ...cur,
+        peso: patch.peso ?? cur.peso ?? 0,
+        aplica: patch.aplica !== undefined ? patch.aplica : cur.aplica !== false,
+        tipo_criterio:
+          patch.tipo_criterio !== undefined ? patch.tipo_criterio : (cur.tipo_criterio || ''),
+        familia_funciones:
+          patch.familia_funciones !== undefined
+            ? patch.familia_funciones
+            : (cur.familia_funciones || ''),
+        parametros_funcion:
+          patch.parametros_funcion !== undefined
+            ? patch.parametros_funcion
+            : (cur.parametros_funcion || {}),
+        es_terminal:
+          patch.es_terminal !== undefined ? patch.es_terminal : Boolean(cur.es_terminal),
       },
     },
   };

@@ -322,14 +322,9 @@ function CriteriosPanel({ proyectoId }) {
       ?? (meta.level === CRITERIO_LEVELS.NODO_ARBOL ? selection?.node?.omoe_id : null);
 
     if (meta.escenarioConfigUpdated && omoeId) {
-      const needsFullReload =
-        meta.escenarioGrupoPesos
-        || meta.escenarioPropagados > 0
-        || meta.descendientesDesactivados > 0
-        || meta.descendientesActivados > 0;
-      if (needsFullReload) {
-        await reloadConfigForOmoe(omoeId);
-      } else if (meta.escenarioNodePatch) {
+      // Recargar siempre: la utilidad (tipo/familia/params) también vive en el escenario.
+      await reloadConfigForOmoe(omoeId);
+      if (meta.escenarioNodePatch) {
         const { nodoId, peso, aplica } = meta.escenarioNodePatch;
         setConfigByOmoe((prev) => patchNodeInConfigByOmoe(prev, omoeId, nodoId, { peso, aplica }));
       }

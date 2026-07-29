@@ -123,17 +123,24 @@ function CriterioDetailPanel({
       .then((res) => {
         if (cancelled) return;
         const data = res.data || {};
+        const params = (
+          data.parametros_funcion
+          && typeof data.parametros_funcion === 'object'
+        )
+          ? data.parametros_funcion
+          : {};
         setFormData((prev) => ({
           ...prev,
-          tipo_criterio: data.tipo_criterio || prev.tipo_criterio || '',
-          familia_funciones: data.familia_funciones || prev.familia_funciones || '',
-          parametros_funcion: (
-            data.parametros_funcion
-            && typeof data.parametros_funcion === 'object'
-            && Object.keys(data.parametros_funcion).length
-          )
-            ? data.parametros_funcion
-            : (prev.parametros_funcion || {}),
+          // Preferir siempre la config del escenario (puede estar vacía).
+          tipo_criterio: data.tipo_criterio || '',
+          familia_funciones: data.familia_funciones || '',
+          parametros_funcion: params,
+          es_nodo_evaluable: Boolean(
+            prev.es_nodo_evaluable
+            || data.es_terminal
+            || data.tipo_criterio
+            || data.familia_funciones
+          ),
         }));
         // No marcar dirty: es carga del escenario, no edición del usuario.
       })

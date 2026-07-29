@@ -184,7 +184,9 @@ function CriterioDynamicForm({
   const showTerminalEval =
     isTreeTerminalLevel && showUtilidad;
   const canToggleEvaluable =
-    (level === CRITERIO_LEVELS.NODO_ARBOL && !item?.hijos?.length)
+    (level === CRITERIO_LEVELS.NODO_ARBOL && (
+      !item?.hijos?.length || Boolean(item?.es_terminal_escenario)
+    ))
     || (level === CRITERIO_LEVELS.OMOE && !item?.nodos?.length);
   const evaluableEsDimension = level === CRITERIO_LEVELS.OMOE;
   const deferExpertFields = omitPesoEvaluacion || isCreate;
@@ -223,12 +225,17 @@ function CriterioDynamicForm({
     }
     const preset = dimensionRama ? RAMA_MOP_PRESETS[dimensionRama] : null;
     const defaults = defaultMopCriterioFields();
+    const keepParams = formData.parametros_funcion
+      && typeof formData.parametros_funcion === 'object'
+      && Object.keys(formData.parametros_funcion).length;
     onChange({
       ...formData,
       es_nodo_evaluable: true,
-      tipo_criterio: preset?.tipo_mop || defaults.tipo_criterio,
-      familia_funciones: preset?.familia_funciones || defaults.familia_funciones,
-      parametros_funcion: defaults.parametros_funcion,
+      // No pisar utilidad ya cargada del escenario.
+      tipo_criterio: formData.tipo_criterio || preset?.tipo_mop || defaults.tipo_criterio,
+      familia_funciones:
+        formData.familia_funciones || preset?.familia_funciones || defaults.familia_funciones,
+      parametros_funcion: keepParams ? formData.parametros_funcion : defaults.parametros_funcion,
       sentido_mejora: preset?.sentido_mejora || formData.sentido_mejora || '',
     });
   };

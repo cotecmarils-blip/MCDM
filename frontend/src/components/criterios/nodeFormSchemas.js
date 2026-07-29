@@ -178,17 +178,19 @@ export function getSchemaForLevel(level, item = null, formData = null, { tipoOpt
 }
 
 export function buildDefaultFormValues(level, item = null, { dimensionRama = null, parentNode = null } = {}) {
+  // Hojas estructurales son evaluables aunque la utilidad viva solo en el escenario.
   const esNodoEvaluable = level === CRITERIO_LEVELS.NODO_ARBOL
     ? (item
-      ? !(item.hijos?.length) && Boolean(
-        item.tipo_criterio
-          || item.familia_funciones
-          || item.modo_evaluacion === 'incertidumbre',
-      )
+      ? !(item.hijos?.length)
+        || Boolean(
+          item.tipo_criterio
+            || item.familia_funciones
+            || item.modo_evaluacion === 'incertidumbre',
+        )
       : false)
     : level === CRITERIO_LEVELS.OMOE
       ? (item
-        ? !(item.nodos?.length) && Boolean(item.tipo_criterio || item.familia_funciones)
+        ? !(item.nodos?.length)
         : false)
       : false;
   const provisional = { es_nodo_evaluable: esNodoEvaluable };
