@@ -40,8 +40,12 @@ class EvaluacionBulkIoTests(TestCase):
         content = build_evaluacion_template(self.proyecto)
         sheet = load_workbook(BytesIO(content), data_only=True)['Evaluacion']
 
-        self.assertEqual(sheet.cell(1, 3).value, 'Velocidad (Estándar)')
-        self.assertEqual(sheet.cell(3, 1).value, self.alternativa.id)
+        # Filas = criterios, columnas = alternativas
+        self.assertEqual(sheet.cell(1, 2).value, 'Criterio')
+        self.assertEqual(sheet.cell(1, 3).value, 'Alternativa A')
+        self.assertEqual(sheet.cell(2, 1).value, '__column_key__')
+        self.assertEqual(sheet.cell(2, 3).value, self.alternativa.id)
+        self.assertEqual(sheet.cell(3, 1).value, 'nodo_arbol:1:1')
         self.assertEqual(sheet.cell(3, 3).value, '12.5')
 
     @patch('api.evaluacion_bulk_io.save_valores_bulk')
@@ -56,6 +60,7 @@ class EvaluacionBulkIoTests(TestCase):
         build_schema.return_value = self.schema
         content = build_evaluacion_template(self.proyecto)
         workbook = load_workbook(BytesIO(content))
+        # Fila de criterio, columna de alternativa
         workbook['Evaluacion'].cell(3, 3).value = 42
         uploaded = BytesIO()
         workbook.save(uploaded)

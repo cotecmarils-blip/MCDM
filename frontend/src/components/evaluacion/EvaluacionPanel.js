@@ -604,7 +604,7 @@ function EvaluacionPanel({ proyectoId, canWrite = true }) {
                 key: 'evaluacion-excel',
                 label: bulkLoading ? 'Preparando Excel…' : 'Plantilla de evaluación (Excel)',
                 description:
-                  'Descarga todos los inputs por alternativa para diligenciarlos fuera del software.',
+                  'Descarga criterios en filas y alternativas en columnas para diligenciar fuera del software.',
                 onClick: handleDownloadBulkTemplate,
                 disabled: bulkLoading || loadingSchema,
               },
