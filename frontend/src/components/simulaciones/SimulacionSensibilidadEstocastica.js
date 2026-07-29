@@ -85,9 +85,11 @@ function RecordsTable({ title, subtitle, rows, columns }) {
               <td className="px-2 py-1.5 font-medium text-gray-700 dark:text-gray-200">{row.id}</td>
               {cols.map((c) => (
                 <td key={`${row.id}-${c}`} className="px-2 py-1.5 text-right font-mono">
-                  {row[c] == null || Number.isNaN(Number(row[c]))
-                    ? '—'
-                    : Number(row[c]).toFixed(4)}
+                  {typeof row[c] === 'string'
+                    ? row[c]
+                    : row[c] == null || Number.isNaN(Number(row[c]))
+                      ? '—'
+                      : Number(row[c]).toFixed(4)}
                 </td>
               ))}
             </tr>
@@ -98,6 +100,13 @@ function RecordsTable({ title, subtitle, rows, columns }) {
   );
 }
 
+function convNum(row, ...keys) {
+  for (const k of keys) {
+    if (row[k] != null && row[k] !== '') return Number(row[k]);
+  }
+  return NaN;
+}
+
 function SimulacionSensibilidadEstocastica({
   proyectoId,
   resultado,
@@ -105,8 +114,13 @@ function SimulacionSensibilidadEstocastica({
   onPlotBgColorChange,
 }) {
   const historialKey = resultado?.historial_id ?? resultado?.titulo_historial ?? '';
+  const [nivel, setNivel] = useState('macro');
   const [muestras, setMuestras] = useState(2048);
   const [concentracion, setConcentracion] = useState(40);
+  const [concentracionMeso, setConcentracionMeso] = useState(40);
+  const [samplingMethod, setSamplingMethod] = useState('mc');
+  const [umbral, setUmbral] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -116,15 +130,20 @@ function SimulacionSensibilidadEstocastica({
     setLoading(true);
     setError(null);
     try {
-      const res = await simulacionApi.sensibilidad(
-        proyectoId,
-        sensibilidadRequestBody(resultado, {
-          accion: 'estocastica',
-          muestras: Number(muestras) || 2048,
-          concentracion: Number(concentracion) || 40,
-          seed: 42,
-        }),
-      );
+      const body = sensibilidadRequestBody(resultado, {
+        accion: 'estocastica',
+        nivel,
+        muestras: Number(muestras) || 2048,
+        concentracion: Number(concentracion) || 40,
+        concentracion_meso: Number(concentracionMeso) || 40,
+        sampling_method: samplingMethod,
+        seed: 42,
+      });
+      if (umbral !== '' && umbral != null) {
+        const thr = Number(umbral);
+        if (!Number.isNaN(thr)) body.admissibility_threshold = thr;
+      }
+      const res = await simulacionApi.sensibilidad(proyectoId, body);
       if (!res.data?.ok) {
         setPayload(null);
         setError(res.data?.mensaje || 'No se pudo calcular la sensibilidad estocástica.');
@@ -145,7 +164,16 @@ function SimulacionSensibilidadEstocastica({
     } finally {
       setLoading(false);
     }
-  }, [proyectoId, resultado, muestras, concentracion]);
+  }, [
+    proyectoId,
+    resultado,
+    nivel,
+    muestras,
+    concentracion,
+    concentracionMeso,
+    samplingMethod,
+    umbral,
+  ]);
 
   useEffect(() => {
     setPayload(null);
@@ -161,24 +189,50 @@ function SimulacionSensibilidadEstocastica({
     || payload?.metodo_madm_label
     || 'MADM';
 
+  const nivelLabel = nivel === 'meso_macro' ? 'meso–macro' : 'macro';
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-            Sensibilidad y robustez estocástica (SMAA · macro)
+            Sensibilidad y robustez estocástica (SMAA · {nivelLabel})
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-3xl">
-            Implementación según la guía metodológica (Joan): muestreo Dirichlet de pesos
-            en el simplex, agregación {payload?.aggregation === 'topsis' ? 'TOPSIS' : 'aditiva'}
-            {' '}alineada a {metodoLabel}, aceptabilidad de rangos, dashboard de robustez y
-            detención secuencial por convergencia.
+            Guía metodológica Joan (03_2): muestreo Dirichlet, agregación{' '}
+            {payload?.aggregation === 'topsis' ? 'TOPSIS' : 'aditiva'} alineada a {metodoLabel},
+            aceptabilidad de rangos, Kendall, dashboard, superficies 3D y detención secuencial.
           </p>
         </div>
         <SimulacionPlotBgPicker
           plotBgColor={plotBgColor}
           onChange={onPlotBgColorChange}
         />
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setNivel('macro')}
+          className={`px-3 py-1.5 rounded-lg text-sm border ${
+            nivel === 'macro'
+              ? 'bg-navy-700 text-white border-navy-700'
+              : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200'
+          }`}
+        >
+          Enfoque macro
+        </button>
+        <button
+          type="button"
+          onClick={() => setNivel('meso_macro')}
+          className={`px-3 py-1.5 rounded-lg text-sm border ${
+            nivel === 'meso_macro'
+              ? 'bg-navy-700 text-white border-navy-700'
+              : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200'
+          }`}
+        >
+          Meso–macro
+        </button>
       </div>
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white/70 dark:bg-navy-950/30 p-3 flex flex-wrap gap-3 items-end">
@@ -195,7 +249,7 @@ function SimulacionSensibilidadEstocastica({
           />
         </label>
         <label className="text-xs text-gray-600 dark:text-gray-300">
-          Concentración Dirichlet
+          Concentración Dirichlet (macro)
           <input
             type="number"
             min={2}
@@ -209,6 +263,27 @@ function SimulacionSensibilidadEstocastica({
             Más alto = pesos más cercanos al cálculo original
           </span>
         </label>
+        {nivel === 'meso_macro' && (
+          <label className="text-xs text-gray-600 dark:text-gray-300">
+            Concentración meso (λ)
+            <input
+              type="number"
+              min={2}
+              max={500}
+              step={1}
+              value={concentracionMeso}
+              onChange={(e) => setConcentracionMeso(e.target.value)}
+              className="mt-1 block w-28 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-950 px-2 py-1.5 text-sm"
+            />
+          </label>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((v) => !v)}
+          className="btn btn-sm border border-gray-300 dark:border-gray-600 text-sm"
+        >
+          {showAdvanced ? 'Ocultar avanzado' : 'Parámetros avanzados'}
+        </button>
         <button
           type="button"
           onClick={runAnalysis}
@@ -219,19 +294,58 @@ function SimulacionSensibilidadEstocastica({
         </button>
       </div>
 
+      {showAdvanced && (
+        <div className="rounded-xl border border-dashed border-gray-300 dark:border-gray-600 p-3 flex flex-wrap gap-3 items-end">
+          <label className="text-xs text-gray-600 dark:text-gray-300">
+            Método de muestreo
+            <select
+              value={samplingMethod}
+              onChange={(e) => setSamplingMethod(e.target.value)}
+              className="mt-1 block w-40 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-950 px-2 py-1.5 text-sm"
+            >
+              <option value="mc">Monte Carlo</option>
+              <option value="lhs">LHS (requiere SciPy)</option>
+              <option value="sobol">Sobol (requiere SciPy)</option>
+            </select>
+          </label>
+          <label className="text-xs text-gray-600 dark:text-gray-300">
+            Umbral de admisibilidad
+            <input
+              type="number"
+              step={0.01}
+              min={0}
+              max={1}
+              placeholder="opcional"
+              value={umbral}
+              onChange={(e) => setUmbral(e.target.value)}
+              className="mt-1 block w-28 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-950 px-2 py-1.5 text-sm"
+            />
+            <span className="block text-[10px] text-gray-400 mt-1">
+              Activa columna P(admisible) en el dashboard
+            </span>
+          </label>
+        </div>
+      )}
+
       {error && (
-        <p className="text-sm text-amber-700 dark:text-amber-300 rounded-lg border border-amber-200 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 px-3 py-2">
+        <p className="text-sm text-amber-700 dark:text-amber-300 rounded-lg border border-amber-200 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 whitespace-pre-wrap">
           {error}
         </p>
       )}
 
       {payload?.ok && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <div className="rounded-lg border border-gray-200 dark:border-gray-700/60 p-3">
               <p className="text-[11px] uppercase tracking-wide text-gray-400">Iteraciones</p>
               <p className="text-lg font-semibold text-gray-800 dark:text-gray-100">
                 {payload.muestras}
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700/60 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-gray-400">Muestreo</p>
+              <p className="text-lg font-semibold text-gray-800 dark:text-gray-100 uppercase">
+                {payload.sampling_method || 'mc'}
               </p>
             </div>
             <div className="rounded-lg border border-gray-200 dark:border-gray-700/60 p-3">
@@ -263,7 +377,7 @@ function SimulacionSensibilidadEstocastica({
 
           <RecordsTable
             title="Dashboard de robustez"
-            subtitle="Score base, P(1.º), Q05, regret normalizado, estabilidad ordinal."
+            subtitle="Score base, P(1.º), Q05, regret normalizado, estabilidad ordinal, P(admisible)."
             rows={payload.robustness_dashboard}
           />
 
@@ -291,6 +405,45 @@ function SimulacionSensibilidadEstocastica({
             rows={payload.regret_summary}
           />
 
+          {payload.omoe_derived_distribution && (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 p-3">
+              <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">
+                OMOE derivado (meso–macro)
+              </h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Distribución del valor OMOE = λ₁z₁ + λ₂z₂ sobre el muestreo meso.
+              </p>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs">
+                  <thead className="bg-gray-50 dark:bg-navy-900/60">
+                    <tr>
+                      <th className="px-2 py-1.5 text-left">Alt.</th>
+                      <th className="px-2 py-1.5 text-right">Media</th>
+                      <th className="px-2 py-1.5 text-right">Q05</th>
+                      <th className="px-2 py-1.5 text-right">Q95</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(payload.omoe_derived_distribution.index || []).map((name, i) => (
+                      <tr key={name} className="border-t border-gray-100 dark:border-gray-800">
+                        <td className="px-2 py-1.5">{name}</td>
+                        <td className="px-2 py-1.5 text-right font-mono">
+                          {Number(payload.omoe_derived_distribution.mean[i]).toFixed(4)}
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-mono">
+                          {Number(payload.omoe_derived_distribution.q05[i]).toFixed(4)}
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-mono">
+                          {Number(payload.omoe_derived_distribution.q95[i]).toFixed(4)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {payload.convergence?.length > 0 && (
             <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 p-3">
               <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">
@@ -312,24 +465,30 @@ function SimulacionSensibilidadEstocastica({
                     </tr>
                   </thead>
                   <tbody>
-                    {payload.convergence.slice(-8).map((row) => (
-                      <tr key={row.id || row.iterations} className="border-t border-gray-100 dark:border-gray-800">
-                        <td className="px-2 py-1.5 font-mono">{row.iterations ?? row.id}</td>
-                        <td className="px-2 py-1.5 text-right font-mono">
-                          {Number(row.max_rank_change).toFixed(4)}
-                        </td>
-                        <td className="px-2 py-1.5 text-right font-mono">
-                          {Number(row.max_quantile_change).toFixed(4)}
-                        </td>
-                        <td className="px-2 py-1.5 text-right font-mono">
-                          {Number(row.max_wilson_half_width).toFixed(4)}
-                        </td>
-                        <td className="px-2 py-1.5">{row.leading_alternative}</td>
-                        <td className="px-2 py-1.5">
-                          {row.criteria_satisfied ? 'sí' : 'no'}
-                        </td>
-                      </tr>
-                    ))}
+                    {payload.convergence.slice(-8).map((row) => {
+                      const n = convNum(row, 'Iteraciones', 'iterations');
+                      const dR = convNum(row, 'Cambio máx. aceptabilidad', 'max_rank_change');
+                      const dQ = convNum(row, 'Cambio máx. cuantiles', 'max_quantile_change');
+                      const wil = convNum(row, 'Semiancho Wilson máx.', 'max_wilson_half_width');
+                      const leader = row['Alternativa líder'] || row.leading_alternative || '—';
+                      const ok = row['Criterios cumplidos'] ?? row.criteria_satisfied;
+                      return (
+                        <tr key={row.id || n} className="border-t border-gray-100 dark:border-gray-800">
+                          <td className="px-2 py-1.5 font-mono">{Number.isFinite(n) ? n : '—'}</td>
+                          <td className="px-2 py-1.5 text-right font-mono">
+                            {Number.isFinite(dR) ? dR.toFixed(4) : '—'}
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-mono">
+                            {Number.isFinite(dQ) ? dQ.toFixed(4) : '—'}
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-mono">
+                            {Number.isFinite(wil) ? wil.toFixed(4) : '—'}
+                          </td>
+                          <td className="px-2 py-1.5">{leader}</td>
+                          <td className="px-2 py-1.5">{ok ? 'sí' : 'no'}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

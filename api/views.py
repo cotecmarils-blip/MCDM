@@ -1898,11 +1898,16 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
 
         if accion in {'estocastica', 'estocástica', 'stochastic'}:
             try:
+                thr = body.get('admissibility_threshold', body.get('umbral_admisibilidad'))
                 payload = build_stochastic_sensibilidad_from_resultado(
                     resultado or {},
                     muestras=body.get('muestras'),
                     concentracion=body.get('concentracion'),
+                    concentracion_meso=body.get('concentracion_meso'),
                     seed=body.get('seed', 42),
+                    nivel=body.get('nivel') or 'macro',
+                    sampling_method=body.get('sampling_method') or body.get('metodo_muestreo') or 'mc',
+                    admissibility_threshold=thr,
                 )
             except ValidationError as exc:
                 detail = exc.messages[0] if getattr(exc, 'messages', None) else str(exc)

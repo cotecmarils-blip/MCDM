@@ -575,67 +575,282 @@ def _clamp_stochastic_params(muestras: int | None, concentracion: float | None) 
     return n, kappa
 
 
+def _alt_dimension_map(resultado: dict[str, Any]) -> dict[str, dict[str, dict[str, Any]]]:
+    """alternativa → rama → dim dict."""
+    out: dict[str, dict[str, dict[str, Any]]] = {}
+    for alt in resultado.get('alternativas') or []:
+        name = alt.get('nombre')
+        if not name:
+            continue
+        by_rama: dict[str, dict[str, Any]] = {}
+        for dim in alt.get('dimensiones') or []:
+            rama = (dim.get('rama_evaluacion') or '').strip().lower()
+            if rama:
+                by_rama[rama] = dim
+        out[str(name)] = by_rama
+    return out
+
+
+def extract_meso_macro_inputs(
+    resultado: dict[str, Any],
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Extrae inputs Joan meso–macro desde un resultado de simulación.
+
+    Requiere dimensiones omoc, omoe y omor, y al menos dos valores
+    contextuales OMOE en ``escenarios_resumen.por_escenario`` (modo selección).
+    """
+    catalog = _dimension_catalog(resultado)
+    ramas = {((c.get('rama') or '').strip().lower()): c for c in catalog}
+    for needed in ('omoc', 'omoe', 'omor'):
+        if needed not in ramas:
+            return None, (
+                'El escenario meso–macro de la guía Joan requiere dimensiones '
+                'OMOC, OMOE y OMOR (por rama_evaluacion). Falta: '
+                f'{needed.upper()}.'
+            )
+
+    alt_map = _alt_dimension_map(resultado)
+    if not alt_map:
+        return None, 'No hay alternativas en el cálculo para meso–macro.'
+
+    # Contexto labels / pesos meso desde la primera alternativa con resumen.
+    context_rows: list[dict[str, Any]] = []
+    for _name, by_rama in alt_map.items():
+        omoe_dim = by_rama.get('omoe') or {}
+        resumen = omoe_dim.get('escenarios_resumen') or (
+            (omoe_dim.get('detalle') or {}).get('escenario_resumen')
+        ) or {}
+        por = list(resumen.get('por_escenario') or [])
+        if len(por) >= 2:
+            context_rows = por[:2]
+            break
+
+    if len(context_rows) < 2:
+        return None, (
+            'Para meso–macro hacen falta al menos dos escenarios OMOE con valor '
+            'dimensional por contexto (z₁, z₂). En el PDF de Joan esos valores '
+            'son inputs fijos por alternativa. En MDCM hoy solo aparecen en '
+            'cálculos con agregación por selección de escenario '
+            '(mínimo/máximo-mejor o peor caso), en '
+            'dimensiones[].escenarios_resumen.por_escenario. '
+            'Pendiente validar con Joan si, en modo compensatorio, debemos '
+            'recalcular el árbol OMOE una vez por escenario al vuelo.'
+        )
+
+    alternatives: list[str] = []
+    omoc_vals: list[float] = []
+    omor_vals: list[float] = []
+    omoe_ctx: list[list[float]] = []
+    esc_ids = [row.get('escenario_id') for row in context_rows]
+
+    for name, by_rama in alt_map.items():
+        try:
+            omoc_v = float((by_rama.get('omoc') or {}).get('valor'))
+            omor_v = float((by_rama.get('omor') or {}).get('valor'))
+        except (TypeError, ValueError):
+            continue
+        omoe_dim = by_rama.get('omoe') or {}
+        resumen = omoe_dim.get('escenarios_resumen') or (
+            (omoe_dim.get('detalle') or {}).get('escenario_resumen')
+        ) or {}
+        por = {
+            row.get('escenario_id'): row
+            for row in (resumen.get('por_escenario') or [])
+        }
+        zs: list[float] = []
+        ok = True
+        for eid in esc_ids:
+            row = por.get(eid)
+            if not row:
+                ok = False
+                break
+            try:
+                zs.append(float(row.get('valor')))
+            except (TypeError, ValueError):
+                ok = False
+                break
+        if not ok or len(zs) != 2:
+            continue
+        alternatives.append(name)
+        omoc_vals.append(omoc_v)
+        omor_vals.append(omor_v)
+        omoe_ctx.append(zs)
+
+    if len(alternatives) < 2:
+        return None, (
+            'No se pudieron alinear OMOC/OMOR y los dos contextos OMOE '
+            'para al menos dos alternativas.'
+        )
+
+    labels = [
+        str(context_rows[0].get('nombre') or 'contexto_1'),
+        str(context_rows[1].get('nombre') or 'contexto_2'),
+    ]
+    # Pesos meso: si el resumen trae peso por escenario úselo; si no, iguales.
+    meso_w = []
+    for row in context_rows:
+        pw = row.get('peso')
+        try:
+            meso_w.append(float(pw))
+        except (TypeError, ValueError):
+            meso_w.append(0.0)
+    if sum(meso_w) <= WEIGHT_TOLERANCE:
+        meso_w = [0.5, 0.5]
+    else:
+        s = sum(meso_w)
+        meso_w = [x / s for x in meso_w]
+        if max(meso_w) > 1.0 + WEIGHT_TOLERANCE:
+            # vinieron en porcentaje
+            meso_w = _ensure_fraction_weights(meso_w)
+
+    # Pesos macro: remapeo por rama desde el catálogo / pesos del cálculo.
+    dim_names_by_rama = {
+        'omoc': ramas['omoc']['nombre'],
+        'omoe': ramas['omoe']['nombre'],
+        'omor': ramas['omor']['nombre'],
+    }
+    ordered_names = [dim_names_by_rama[r] for r in ('omoc', 'omoe', 'omor')]
+    # Usar dimensiones presentes en normalizacion si coinciden.
+    all_dims = (resultado.get('normalizacion') or {}).get('dimensions') or [
+        c['nombre'] for c in catalog
+    ]
+    base = _baseline_weights(resultado, list(all_dims))
+    name_to_w = {all_dims[i]: base[i] for i in range(min(len(all_dims), len(base)))}
+    macro_w = [float(name_to_w.get(n, 1.0 / 3.0)) for n in ordered_names]
+    macro_w = _ensure_fraction_weights(macro_w)
+
+    # Direcciones por rama.
+    directions = []
+    opciones = resultado.get('opciones_calculo') or {}
+    raw_dirs = (resultado.get('normalizacion') or {}).get('directions') or opciones.get('direcciones') or {}
+    for rama, nombre in dim_names_by_rama.items():
+        default = 'min' if rama in ('omoc', 'omor') else 'max'
+        if isinstance(raw_dirs, dict):
+            directions.append(str(raw_dirs.get(nombre) or raw_dirs.get(rama) or default))
+        else:
+            directions.append(default)
+
+    return {
+        'alternatives': alternatives,
+        'omoc': omoc_vals,
+        'omor': omor_vals,
+        'omoe_contexts': omoe_ctx,
+        'nominal_macro_weights': macro_w,
+        'nominal_meso_weights': meso_w,
+        'directions': directions,
+        'context_labels': labels,
+    }, None
+
+
 def build_stochastic_sensibilidad_from_resultado(
     resultado: dict[str, Any],
     *,
     muestras: int | None = None,
     concentracion: float | None = None,
+    concentracion_meso: float | None = None,
     seed: int | None = 42,
+    nivel: str | None = 'macro',
+    sampling_method: str | None = 'mc',
+    admissibility_threshold: float | None = None,
 ) -> dict[str, Any]:
-    """Sensibilidad estocástica SMAA-macro (guía Joan / notebook 03_2).
+    """Sensibilidad estocástica SMAA (guía Joan / notebook 03_2).
 
-    Muestrea pesos Dirichlet sobre el simplex de dimensiones, agrega (WSM o
-    TOPSIS) sobre la matriz ya normalizada del cálculo y reporta aceptabilidad
-    de rangos, P(1.º), dashboard de robustez, convergencia, etc.
+    ``nivel``:
+      - ``macro``: matriz dimensional fija (pipeline normalizado).
+      - ``meso_macro``: OMOE contextual × λ + pesos macro (requiere datos).
     """
-    from .stochastic_smaa_bridge import run_smaa_macro
+    from .stochastic_smaa_bridge import run_smaa_macro, run_smaa_meso_macro
 
     error = validate_sensibilidad_resultado(resultado)
     if error:
         return {'ok': False, 'mensaje': error}
 
     n_samples, kappa = _clamp_stochastic_params(muestras, concentracion)
-    ctx = _build_ranker_context(resultado)
-    dimensions = ctx['dimensions']
-    alternatives = ctx['alternatives']
-    matrix = ctx['matrix']
-    if not matrix or not alternatives or not dimensions:
-        return {'ok': False, 'mensaje': 'El cálculo no tiene matriz dimensional para SMAA.'}
+    kappa_meso = None
+    if concentracion_meso is not None:
+        _, kappa_meso = _clamp_stochastic_params(muestras, concentracion_meso)
 
-    base_weights = _baseline_weights(resultado, dimensions)
-    if sum(base_weights) <= WEIGHT_TOLERANCE:
-        return {'ok': False, 'mensaje': 'Los pesos base del cálculo no son válidos.'}
-
-    metodo = (ctx.get('metodo_madm') or 'topsis').lower()
-    aggregation = 'topsis' if metodo == 'topsis' else 'additive'
-
-    # Direcciones del cálculo (informativas; matriz ya normalizada → benefit).
-    opciones = resultado.get('opciones_calculo') or {}
-    norm = resultado.get('normalizacion') or {}
-    raw_dirs = norm.get('directions') or opciones.get('direcciones') or []
-    if isinstance(raw_dirs, dict):
-        directions = [
-            str(raw_dirs.get(str(i + 1)) or raw_dirs.get(dimensions[i]) or 'max')
-            for i in range(len(dimensions))
-        ]
-    elif isinstance(raw_dirs, list) and len(raw_dirs) == len(dimensions):
-        directions = [str(d) for d in raw_dirs]
+    nivel_norm = (nivel or 'macro').strip().lower().replace('-', '_').replace('–', '_')
+    if nivel_norm in ('meso', 'mesomacro', 'meso_macro', 'macro_meso'):
+        nivel_norm = 'meso_macro'
     else:
-        directions = ['max'] * len(dimensions)
+        nivel_norm = 'macro'
+
+    metodo = (_metodo_madm_from_resultado(resultado) or 'topsis').lower()
+    aggregation = 'topsis' if metodo == 'topsis' else 'additive'
+    thr = None
+    if admissibility_threshold is not None and str(admissibility_threshold).strip() != '':
+        try:
+            thr = float(admissibility_threshold)
+        except (TypeError, ValueError):
+            thr = None
 
     try:
-        payload = run_smaa_macro(
-            alternatives=alternatives,
-            criteria=dimensions,
-            matrix=matrix,
-            directions=directions,
-            nominal_weights=base_weights,
-            muestras=n_samples,
-            concentracion=kappa,
-            seed=42 if seed is None else int(seed),
-            aggregation=aggregation,
-            matrix_already_normalized=True,
-        )
+        if nivel_norm == 'meso_macro':
+            inputs, msg = extract_meso_macro_inputs(resultado)
+            if not inputs:
+                return {
+                    'ok': False,
+                    'mensaje': msg or 'No hay datos suficientes para meso–macro.',
+                    'nivel': 'meso_macro',
+                    'requires_joan_clarification': True,
+                }
+            payload = run_smaa_meso_macro(
+                alternatives=inputs['alternatives'],
+                omoc=inputs['omoc'],
+                omor=inputs['omor'],
+                omoe_contexts=inputs['omoe_contexts'],
+                directions=inputs['directions'],
+                nominal_macro_weights=inputs['nominal_macro_weights'],
+                nominal_meso_weights=inputs['nominal_meso_weights'],
+                muestras=n_samples,
+                concentracion=kappa,
+                concentracion_meso=kappa_meso,
+                seed=42 if seed is None else int(seed),
+                aggregation=aggregation,
+                sampling_method=sampling_method or 'mc',
+                admissibility_threshold=thr,
+                context_labels=inputs['context_labels'],
+            )
+        else:
+            ctx = _build_ranker_context(resultado)
+            dimensions = ctx['dimensions']
+            alternatives = ctx['alternatives']
+            matrix = ctx['matrix']
+            if not matrix or not alternatives or not dimensions:
+                return {'ok': False, 'mensaje': 'El cálculo no tiene matriz dimensional para SMAA.'}
+
+            base_weights = _baseline_weights(resultado, dimensions)
+            if sum(base_weights) <= WEIGHT_TOLERANCE:
+                return {'ok': False, 'mensaje': 'Los pesos base del cálculo no son válidos.'}
+
+            opciones = resultado.get('opciones_calculo') or {}
+            norm = resultado.get('normalizacion') or {}
+            raw_dirs = norm.get('directions') or opciones.get('direcciones') or []
+            if isinstance(raw_dirs, dict):
+                directions = [
+                    str(raw_dirs.get(str(i + 1)) or raw_dirs.get(dimensions[i]) or 'max')
+                    for i in range(len(dimensions))
+                ]
+            elif isinstance(raw_dirs, list) and len(raw_dirs) == len(dimensions):
+                directions = [str(d) for d in raw_dirs]
+            else:
+                directions = ['max'] * len(dimensions)
+
+            payload = run_smaa_macro(
+                alternatives=alternatives,
+                criteria=dimensions,
+                matrix=matrix,
+                directions=directions,
+                nominal_weights=base_weights,
+                muestras=n_samples,
+                concentracion=kappa,
+                seed=42 if seed is None else int(seed),
+                aggregation=aggregation,
+                matrix_already_normalized=True,
+                sampling_method=sampling_method or 'mc',
+                admissibility_threshold=thr,
+            )
     except Exception as exc:  # noqa: BLE001 — devolver mensaje usable en UI
         return {
             'ok': False,
