@@ -20,7 +20,7 @@ function MopOptionCardPicker({
         {required && <span className="text-red-500 ml-0.5">*</span>}
       </legend>
 
-      {required && (
+      {required && !disabled && (
         <input type="hidden" name={name} value={value || ''} required readOnly />
       )}
 

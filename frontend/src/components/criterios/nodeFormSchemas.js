@@ -420,7 +420,7 @@ export function siblingPesoResumen(siblings, item, formPeso) {
   };
 }
 
-export function validateNodeForm(level, formData, item = null, { siblings = [] } = {}) {
+export function validateNodeForm(level, formData, item = null, { siblings = [], skipUtilidad = false } = {}) {
   const errors = [];
   const schema = getSchemaForLevel(level, item, formData);
 
@@ -464,6 +464,11 @@ export function validateNodeForm(level, formData, item = null, { siblings = [] }
     if (!formData.es_nodo_evaluable) {
       return errors;
     }
+  }
+
+  // Nodo inactivo en el escenario: no exigir familia/constantes.
+  if (skipUtilidad) {
+    return errors;
   }
 
   const esRiesgoTerminal =

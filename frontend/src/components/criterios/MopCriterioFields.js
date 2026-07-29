@@ -98,7 +98,6 @@ function MopCriterioFields({
           name="tipo_criterio"
           value={tipoCriterio}
           onChange={handleTipoChange}
-          required
           className={`${inputClass} ${compact ? 'py-1.5 text-sm' : ''}`}
         >
           {TIPOS_CRITERIO.map((opt) => (
@@ -110,7 +109,7 @@ function MopCriterioFields({
       </div>
 
       <MopOptionCardPicker
-        label="Familia de función"
+        label="Familia de función *"
         name="familia_funciones"
         options={familias}
         value={familiaFunciones}
@@ -125,7 +124,6 @@ function MopCriterioFields({
         })}
         compact
         disabled={!familias.length}
-        required
       />
 
       {familiaFunciones && (

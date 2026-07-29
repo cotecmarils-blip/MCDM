@@ -273,7 +273,8 @@ function MopFuncionParamFields({ familia, parametros, onChange, disabled, inputC
               rows={spec.type === 'textarea' ? 3 : undefined}
               value={val ?? ''}
               onChange={(e) => handleFieldChange(spec.key, e.target.value)}
-              required={spec.required}
+              // Sin HTML required: si el nodo está inactivo en el escenario, Guardar
+              // no debe quedar bloqueado por constantes incompletas (validación JS).
               className={`${inputClass} ${compact ? 'py-1.5 text-sm' : ''}`}
             />
           </div>

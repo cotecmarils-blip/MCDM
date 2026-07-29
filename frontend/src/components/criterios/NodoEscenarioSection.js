@@ -203,11 +203,13 @@ const NodoEscenarioSection = forwardRef(function NodoEscenarioSection(
       isDirty: () => dirty,
       shouldSave: () =>
         dirty || (propagarATodos && (escenariosList?.length ?? 0) > 1),
+      /** false si el usuario desactivó el nodo en este escenario. */
+      isAplica: () => form.aplica !== false,
       save,
       discard: loadConfig,
       getEffectiveEscenarioId: () => effectiveEscenarioId,
     }),
-    [dirty, effectiveEscenarioId, escenariosList?.length, loadConfig, propagarATodos, save],
+    [dirty, effectiveEscenarioId, escenariosList?.length, form.aplica, loadConfig, propagarATodos, save],
   );
 
   const parentId = config?.parent_id ?? null;

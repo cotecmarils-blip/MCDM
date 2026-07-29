@@ -202,10 +202,11 @@ function CriterioDetailPanel({
 
       let escenarioResult = null;
       if (hasEscenario) {
-        const utilExtra = hasUtilityToEscenario
+        const escenarioInactivo = escenarioRef.current?.isAplica?.() === false;
+        const utilExtra = hasUtilityToEscenario && !escenarioInactivo
           ? extractUtilityForEscenario(formData)
           : {};
-        if (hasUtilityToEscenario) {
+        if (hasUtilityToEscenario && !escenarioInactivo) {
           const validationErrors = validateNodeForm(level, formData, item, { siblings });
           if (validationErrors.length) {
             setError(validationErrors[0]);
@@ -216,7 +217,11 @@ function CriterioDetailPanel({
       }
 
       if (hasNode) {
-        const validationErrors = validateNodeForm(level, formData, isEdit ? item : null, { siblings });
+        const escenarioInactivo = escenarioRef.current?.isAplica?.() === false;
+        const validationErrors = validateNodeForm(level, formData, isEdit ? item : null, {
+          siblings,
+          skipUtilidad: escenarioInactivo,
+        });
         if (validationErrors.length) {
           setError(validationErrors[0]);
           return;
@@ -381,7 +386,7 @@ function CriterioDetailPanel({
   );
 
   return (
-    <form onSubmit={handleSubmit} className={compact ? 'space-y-2' : 'space-y-4'}>
+    <form onSubmit={handleSubmit} noValidate className={compact ? 'space-y-2' : 'space-y-4'}>
       {compact && isEdit && (
         <div className="sticky top-0 z-10 -mx-3 px-3 py-2 mb-1 bg-white/95 dark:bg-navy-900/95 backdrop-blur-sm border-b border-gray-200 dark:border-navy-700/60">
           <div className="flex items-start justify-between gap-2">
