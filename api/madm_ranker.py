@@ -12,7 +12,6 @@ import numpy.typing as npt
 from pymcdm.methods import (
     TOPSIS,
     VIKOR,
-    COPRAS,
     ARAS,
     CODAS,
     EDAS,
@@ -23,6 +22,8 @@ from pymcdm.methods import (
     WSM,
     WPM,
 )
+
+from .madm_copras import ClassicalCOPRAS
 
 
 class Direction(str, Enum):
@@ -406,7 +407,8 @@ class MADMRanker:
     _METHOD_REGISTRY: dict[MADMMethod, type] = {
         MADMMethod.TOPSIS: TOPSIS,
         MADMMethod.VIKOR: VIKOR,
-        MADMMethod.COPRAS: COPRAS,
+        # COPRAS: implementación propia (fórmula clásica). pymcdm.COPRAS es incorrecta.
+        MADMMethod.COPRAS: ClassicalCOPRAS,
         MADMMethod.ARAS: ARAS,
         MADMMethod.CODAS: CODAS,
         MADMMethod.EDAS: EDAS,
