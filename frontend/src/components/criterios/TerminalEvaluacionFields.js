@@ -13,10 +13,9 @@ export function nivelKey(valor) {
 }
 
 /**
- * Configuración de evaluación del nodo terminal (aplica a todos los escenarios).
- * - Certeza: función de utilidad (tipo de criterio + familia).
- * - Incertidumbre: descripciones de consecuencia por nivel; el riesgo = probabilidad × consecuencia
- *   se calcula en el módulo de Evaluación.
+ * Configuración de evaluación del nodo terminal.
+ * - Tipo de criterio / familia / parámetros: por escenario seleccionado.
+ * - Modo certeza/incertidumbre: del nodo (común a todos los escenarios).
  */
 function TerminalEvaluacionFields({
   modo = 'certeza',
@@ -106,8 +105,9 @@ function TerminalEvaluacionFields({
         </h4>
         {!compact && (
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-            Aplica a <strong>todos los escenarios</strong>. Certeza usa función de utilidad;
-            Incertidumbre usa riesgo = probabilidad × consecuencia (se ingresa en Evaluación).
+            La <strong>función de utilidad</strong> (tipo y familia) se guarda en el
+            {' '}<strong>escenario actual</strong>. El modo certeza/incertidumbre aplica a todos
+            los escenarios. En incertidumbre el riesgo = probabilidad × consecuencia (Evaluación).
           </p>
         )}
       </div>

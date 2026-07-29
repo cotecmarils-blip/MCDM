@@ -9,8 +9,6 @@ function AlternativasListSidebar({
   onNew,
   loading,
   canCreate = true,
-  canWrite = true,
-  onToggleActive,
 }) {
   if (loading) {
     return (
@@ -40,43 +38,26 @@ function AlternativasListSidebar({
             No hay alternativas. Crea la primera.
           </p>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-1 list-none pl-0 m-0">
             {items.map((item) => {
               const isActive = selectedId === item.id;
               const costo = formatCosto(item.costo, item.costo_unidad);
               return (
-                <li key={item.id}>
-                  <div
-                    role="button"
-                    tabIndex={0}
+                <li key={item.id} className="list-none">
+                  <button
+                    type="button"
                     onClick={() => onSelect(item.id)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') onSelect(item.id);
-                    }}
                     className={`w-full text-left px-3 py-2.5 rounded-lg transition duration-150 ${
                       isActive
                         ? 'bg-gradient-to-r from-navy-500/[0.12] dark:from-navy-500/[0.24] to-navy-500/[0.04] text-navy-600 dark:text-navy-400'
                         : 'text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-navy-800/40'
                     }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={item.activa !== false}
-                        disabled={!canWrite}
-                        onClick={(event) => event.stopPropagation()}
-                        onChange={(event) => onToggleActive?.(item, event.target.checked)}
-                        aria-label={`${item.activa !== false ? 'Desactivar' : 'Activar'} ${item.nombre}`}
-                        className="rounded border-gray-300 shrink-0"
-                      />
-                      <span className={`font-medium text-sm block truncate ${item.activa === false ? 'opacity-50' : ''}`}>
-                        {item.nombre}
-                      </span>
-                    </div>
+                    <span className="font-medium text-sm block truncate">{item.nombre}</span>
                     {costo && (
                       <span className="text-xs text-gray-500 dark:text-gray-400 block mt-0.5">{costo}</span>
                     )}
-                  </div>
+                  </button>
                 </li>
               );
             })}

@@ -151,21 +151,30 @@ def merge_criterio_fields_for_escenario(
     config_map: dict[int, dict[str, Any]] | None,
 ) -> dict[str, Any]:
     cfg = (config_map or {}).get(nodo.id) or {}
-    # El nodo (Información del árbol de dimensiones) es la fuente de verdad de la
-    # configuración de evaluación; el escenario solo ajusta peso/activación.
-    familia = (nodo.familia_funciones or cfg.get('familia_funciones') or '').strip()
-    tipo = (nodo.tipo_criterio or cfg.get('tipo_criterio') or '').strip()
-    params = nodo.parametros_funcion or cfg.get('parametros_funcion') or {}
+    # Preferir utilidad del escenario; el nodo es fallback (semilla / legacy).
+    cfg_familia = (cfg.get('familia_funciones') or '').strip()
+    cfg_tipo = (cfg.get('tipo_criterio') or '').strip()
+    raw_params = cfg.get('parametros_funcion')
+    cfg_has_params = isinstance(raw_params, dict)
+    cfg_params = raw_params if cfg_has_params else {}
+    if cfg_familia or cfg_tipo or (cfg_has_params and cfg_params):
+        familia = cfg_familia or (nodo.familia_funciones or '').strip()
+        tipo = cfg_tipo or (nodo.tipo_criterio or '').strip()
+        params = cfg_params if cfg_has_params else (nodo.parametros_funcion or {})
+    else:
+        familia = (nodo.familia_funciones or '').strip()
+        tipo = (nodo.tipo_criterio or '').strip()
+        params = nodo.parametros_funcion or {}
     return {
         'nombre': nodo.nombre,
         'familia': familia,
-        'params': params,
+        'params': params if isinstance(params, dict) else {},
         'tipo_criterio': tipo,
         'tipo_dato': nodo.tipo_dato or '',
         'valor_umbral': nodo.valor_umbral,
         'valor_meta': nodo.valor_meta,
         'sentido_mejora': nodo.sentido_mejora or '',
-        # Modo (certeza/incertidumbre) es propiedad del nodo, no del escenario.
+        # Modo (certeza/incertidumbre) sigue siendo del nodo (todos los escenarios).
         'modo_evaluacion': nodo.modo_evaluacion or 'certeza',
     }
 
@@ -621,8 +630,8 @@ def save_nodo_config(
     else:
         row.peso = _q2(Decimal(str(data.get('peso', row.peso) or 0)))
     row.aplica = bool(data.get('aplica', row.aplica))
-    # La configuración de evaluación (utilidad/riesgo) vive en el nodo; el escenario
-    # solo actualiza estos campos si se envían explícitamente (compatibilidad).
+    # Utilidad por escenario: tipo / familia / parámetros se guardan aquí cuando
+    # el cliente los envía (módulo Criterios con escenario seleccionado).
     if 'tipo_criterio' in data:
         row.tipo_criterio = (data.get('tipo_criterio') or '').strip()
     if 'familia_funciones' in data:

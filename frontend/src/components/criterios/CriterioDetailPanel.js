@@ -14,6 +14,33 @@ import { getParentLabel } from './treeUtils';
 import { resolveDimensionRama } from './ramaContext';
 import { getCriterioDisplayName } from './displayNameUtils';
 import OmoeTerminalesInfo from './OmoeTerminalesInfo';
+import { escenarios } from '../../api';
+
+/** Campos de utilidad que viven en NodoArbolEscenario (por escenario). */
+const UTILITY_ESCENARIO_KEYS = [
+  'tipo_criterio',
+  'familia_funciones',
+  'parametros_funcion',
+];
+
+function extractUtilityForEscenario(formData) {
+  return {
+    tipo_criterio: formData.tipo_criterio || formData.tipo_mop || '',
+    familia_funciones: formData.familia_funciones || '',
+    parametros_funcion: formData.parametros_funcion || {},
+  };
+}
+
+function stripUtilityFromNodePayload(payload) {
+  const next = { ...payload };
+  UTILITY_ESCENARIO_KEYS.forEach((k) => {
+    delete next[k];
+  });
+  // Umbral/meta se derivan de L/U en params del escenario; no pisar el nodo.
+  delete next.valor_umbral;
+  delete next.valor_meta;
+  return next;
+}
 
 function CriterioDetailPanel({
   selection,
@@ -73,6 +100,49 @@ function CriterioDetailPanel({
     setEscenarioCanSave(false);
   }, [selection, isEdit, isCreate, item, level, dimensionRama, parentNode, openInEditMode]);
 
+  // Cargar utilidad (tipo/familia/params) del escenario seleccionado.
+  useEffect(() => {
+    if (
+      !isEdit
+      || level !== CRITERIO_LEVELS.NODO_ARBOL
+      || !item?.id
+      || !escenariosList?.length
+    ) {
+      return undefined;
+    }
+    const effectiveId = (
+      escenarioId && escenariosList.some((e) => e.id === escenarioId)
+    )
+      ? escenarioId
+      : escenariosList[0]?.id;
+    if (!effectiveId) return undefined;
+
+    let cancelled = false;
+    escenarios
+      .getConfigNodo(effectiveId, item.id)
+      .then((res) => {
+        if (cancelled) return;
+        const data = res.data || {};
+        setFormData((prev) => ({
+          ...prev,
+          tipo_criterio: data.tipo_criterio || prev.tipo_criterio || '',
+          familia_funciones: data.familia_funciones || prev.familia_funciones || '',
+          parametros_funcion: (
+            data.parametros_funcion
+            && typeof data.parametros_funcion === 'object'
+            && Object.keys(data.parametros_funcion).length
+          )
+            ? data.parametros_funcion
+            : (prev.parametros_funcion || {}),
+        }));
+        // No marcar dirty: es carga del escenario, no edición del usuario.
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isEdit, level, item?.id, escenarioId, escenariosList]);
+
   const handleFormChange = (data) => {
     setFormData(data);
     setNodeDirty(true);
@@ -102,10 +172,15 @@ function CriterioDetailPanel({
     e.preventDefault();
     if (submittingRef.current || loading) return;
 
-    const hasEscenario =
+    const utilityOnEscenario =
       level === CRITERIO_LEVELS.NODO_ARBOL
       && isEdit
-      && escenarioRef.current?.shouldSave?.();
+      && Boolean(item?.id)
+      && (escenariosList?.length ?? 0) > 0;
+
+    const hasEscenarioSection = utilityOnEscenario && escenarioRef.current?.shouldSave?.();
+    const hasUtilityToEscenario = utilityOnEscenario && nodeDirty;
+    const hasEscenario = hasEscenarioSection || hasUtilityToEscenario;
     const hasNode = isCreate || nodeDirty;
 
     if (!hasEscenario && !hasNode) {
@@ -120,7 +195,17 @@ function CriterioDetailPanel({
 
       let escenarioResult = null;
       if (hasEscenario) {
-        escenarioResult = await escenarioRef.current.save();
+        const utilExtra = hasUtilityToEscenario
+          ? extractUtilityForEscenario(formData)
+          : {};
+        if (hasUtilityToEscenario) {
+          const validationErrors = validateNodeForm(level, formData, item, { siblings });
+          if (validationErrors.length) {
+            setError(validationErrors[0]);
+            return;
+          }
+        }
+        escenarioResult = await escenarioRef.current.save(utilExtra);
       }
 
       if (hasNode) {
@@ -129,7 +214,7 @@ function CriterioDetailPanel({
           setError(validationErrors[0]);
           return;
         }
-        const payload = {
+        let payload = {
           ...buildPayloadFromForm(level, formData, isEdit ? item : null),
           ...buildCreateContext(level, {
             proyectoId,
@@ -140,8 +225,19 @@ function CriterioDetailPanel({
           }),
         };
 
+        // En edición con escenario: utilidad va al config del escenario, no al nodo.
+        if (utilityOnEscenario && isEdit) {
+          payload = stripUtilityFromNodePayload(payload);
+        }
+
         if (isEdit) {
-          await nodeApi.update(item.id, payload);
+          // Si solo cambió utilidad (ya guardada en escenario), no hace falta PATCH vacío.
+          const keysLeft = Object.keys(payload).filter(
+            (k) => payload[k] !== undefined,
+          );
+          if (keysLeft.length > 0) {
+            await nodeApi.update(item.id, payload);
+          }
         } else {
           const res = await nodeApi.create(payload);
           // Esperar el refresco del árbol: si no, el botón vuelve a "Crear"
@@ -157,7 +253,7 @@ function CriterioDetailPanel({
         level,
         id: item.id,
         omoeId,
-        escenarioConfigUpdated: Boolean(escenarioResult),
+        escenarioConfigUpdated: Boolean(escenarioResult) || hasUtilityToEscenario,
         escenarioNodePatch: escenarioResult
           ? { nodoId: item.id, peso: escenarioResult.peso, aplica: escenarioResult.aplica }
           : null,

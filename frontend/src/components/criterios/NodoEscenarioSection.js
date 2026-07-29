@@ -174,12 +174,17 @@ const NodoEscenarioSection = forwardRef(function NodoEscenarioSection(
     onGrupoPesosApplied?.(grupoData);
   };
 
-  const save = useCallback(async () => {
+  const save = useCallback(async (extra = {}) => {
     if (!effectiveEscenarioId || !nodoId) return null;
     const propagar = propagarATodos && (escenariosList?.length ?? 0) > 1;
-    if (!dirty && !propagar) return null;
+    const extraKeys = extra && typeof extra === 'object' ? Object.keys(extra) : [];
+    if (!dirty && !propagar && extraKeys.length === 0) return null;
     setError(null);
-    const payload = propagar ? { ...form, propagar_a_todos: true } : form;
+    const payload = {
+      ...form,
+      ...(extra || {}),
+      ...(propagar ? { propagar_a_todos: true } : {}),
+    };
     const res = await escenarios.setConfigNodo(effectiveEscenarioId, nodoId, payload);
     return applyResponse(res.data || {});
   }, [
@@ -200,8 +205,9 @@ const NodoEscenarioSection = forwardRef(function NodoEscenarioSection(
         dirty || (propagarATodos && (escenariosList?.length ?? 0) > 1),
       save,
       discard: loadConfig,
+      getEffectiveEscenarioId: () => effectiveEscenarioId,
     }),
-    [dirty, escenariosList?.length, loadConfig, propagarATodos, save],
+    [dirty, effectiveEscenarioId, escenariosList?.length, loadConfig, propagarATodos, save],
   );
 
   const parentId = config?.parent_id ?? null;
@@ -292,7 +298,7 @@ const NodoEscenarioSection = forwardRef(function NodoEscenarioSection(
                   onChange={(e) => setPropagarATodos(e.target.checked)}
                   className="rounded border-gray-300 text-teal-600"
                 />
-                Igual en todos los escenarios (solo este nodo)
+                Igual en todos los escenarios (peso, activación y función de este nodo)
               </label>
             )}
           </div>

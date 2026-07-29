@@ -177,8 +177,8 @@ function CriterioDynamicForm({
     [level, item, formData, tipoOptions],
   );
   const showUtilidad = showUtilidadFields(level, item, formData);
-  // El modo (certeza/incertidumbre) y su configuración viven en la Información del
-  // nodo terminal (OMOE u nodo del árbol) y aplican a todos los escenarios.
+  // Función de utilidad (tipo/familia/params) se guarda por escenario en nodos del árbol.
+  // Modo certeza/incertidumbre sigue en el nodo. Dimensión OMOE evaluable: global en el Omoe.
   const isTreeTerminalLevel =
     level === CRITERIO_LEVELS.NODO_ARBOL || level === CRITERIO_LEVELS.OMOE;
   const showTerminalEval =

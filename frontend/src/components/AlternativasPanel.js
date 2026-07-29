@@ -78,22 +78,6 @@ function AlternativasPanel({ proyectoId }) {
     loadList({ silent: true });
   };
 
-  const handleToggleActive = async (item, activa) => {
-    const previous = items;
-    setItems((current) =>
-      current.map((candidate) =>
-        candidate.id === item.id ? { ...candidate, activa } : candidate
-      )
-    );
-    try {
-      await alternativas.update(item.id, { activa });
-    } catch (err) {
-      console.error('Error actualizando estado de alternativa:', err);
-      setItems(previous);
-      window.alert('No se pudo actualizar el estado de la alternativa.');
-    }
-  };
-
   const handleExportJson = () => {
     const payload = {
       proyecto_id: proyectoId,
@@ -214,8 +198,6 @@ function AlternativasPanel({ proyectoId }) {
                 onNew={handleNew}
                 loading={loading}
                 canCreate={canCreateAlternativa}
-                canWrite={canWrite}
-                onToggleActive={handleToggleActive}
               />
             }
             right={
