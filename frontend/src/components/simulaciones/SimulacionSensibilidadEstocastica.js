@@ -19,6 +19,85 @@ const MADM_LABELS = {
   wpm: 'WPM',
 };
 
+function MatrixTable({ title, subtitle, matrix }) {
+  if (!matrix?.index?.length || !matrix?.columns?.length) return null;
+  return (
+    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700/60">
+      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+        <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{title}</h4>
+        {subtitle && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>
+        )}
+      </div>
+      <table className="min-w-full text-xs">
+        <thead className="bg-gray-50 dark:bg-navy-900/60">
+          <tr>
+            <th className="px-2 py-1.5 text-left font-semibold text-gray-500">Alt.</th>
+            {matrix.columns.map((c) => (
+              <th key={c} className="px-2 py-1.5 text-right font-semibold text-gray-500 whitespace-nowrap">
+                {c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {matrix.index.map((rowId, i) => (
+            <tr key={rowId} className="border-t border-gray-100 dark:border-gray-800/80">
+              <td className="px-2 py-1.5 font-medium text-gray-700 dark:text-gray-200">{rowId}</td>
+              {(matrix.values[i] || []).map((v, j) => (
+                <td key={`${rowId}-${j}`} className="px-2 py-1.5 text-right font-mono">
+                  {v == null || Number.isNaN(Number(v)) ? '—' : Number(v).toFixed(3)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function RecordsTable({ title, subtitle, rows, columns }) {
+  if (!rows?.length) return null;
+  const cols = columns || Object.keys(rows[0]).filter((k) => k !== 'id');
+  return (
+    <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700/60">
+      <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800">
+        <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">{title}</h4>
+        {subtitle && (
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>
+        )}
+      </div>
+      <table className="min-w-full text-xs">
+        <thead className="bg-gray-50 dark:bg-navy-900/60">
+          <tr>
+            <th className="px-2 py-1.5 text-left font-semibold text-gray-500">Alt.</th>
+            {cols.map((c) => (
+              <th key={c} className="px-2 py-1.5 text-right font-semibold text-gray-500 whitespace-nowrap">
+                {c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.id} className="border-t border-gray-100 dark:border-gray-800/80">
+              <td className="px-2 py-1.5 font-medium text-gray-700 dark:text-gray-200">{row.id}</td>
+              {cols.map((c) => (
+                <td key={`${row.id}-${c}`} className="px-2 py-1.5 text-right font-mono">
+                  {row[c] == null || Number.isNaN(Number(row[c]))
+                    ? '—'
+                    : Number(row[c]).toFixed(4)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function SimulacionSensibilidadEstocastica({
   proyectoId,
   resultado,
@@ -26,7 +105,7 @@ function SimulacionSensibilidadEstocastica({
   onPlotBgColorChange,
 }) {
   const historialKey = resultado?.historial_id ?? resultado?.titulo_historial ?? '';
-  const [muestras, setMuestras] = useState(500);
+  const [muestras, setMuestras] = useState(2048);
   const [concentracion, setConcentracion] = useState(40);
   const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -41,7 +120,7 @@ function SimulacionSensibilidadEstocastica({
         proyectoId,
         sensibilidadRequestBody(resultado, {
           accion: 'estocastica',
-          muestras: Number(muestras) || 500,
+          muestras: Number(muestras) || 2048,
           concentracion: Number(concentracion) || 40,
           seed: 42,
         }),
@@ -83,12 +162,13 @@ function SimulacionSensibilidadEstocastica({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-            Análisis de sensibilidad estocástica (macro)
+            Sensibilidad y robustez estocástica (SMAA · macro)
           </h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-3xl">
-            Simula muchas perturbaciones aleatorias de los pesos entre dimensiones y vuelve a
-            correr el ranking {metodoLabel}. Sirve para ver qué tan estable es el ganador cuando
-            hay incertidumbre en la ponderación macro.
+            Implementación según la guía metodológica (Joan): muestreo Dirichlet de pesos
+            en el simplex, agregación {payload?.aggregation === 'topsis' ? 'TOPSIS' : 'aditiva'}
+            {' '}alineada a {metodoLabel}, aceptabilidad de rangos, dashboard de robustez y
+            detención secuencial por convergencia.
           </p>
         </div>
         <SimulacionPlotBgPicker
@@ -99,19 +179,19 @@ function SimulacionSensibilidadEstocastica({
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white/70 dark:bg-navy-950/30 p-3 flex flex-wrap gap-3 items-end">
         <label className="text-xs text-gray-600 dark:text-gray-300">
-          Simulaciones
+          Iteraciones máx.
           <input
             type="number"
-            min={50}
-            max={3000}
-            step={50}
+            min={256}
+            max={16384}
+            step={256}
             value={muestras}
             onChange={(e) => setMuestras(e.target.value)}
             className="mt-1 block w-28 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-navy-950 px-2 py-1.5 text-sm"
           />
         </label>
         <label className="text-xs text-gray-600 dark:text-gray-300">
-          Concentración
+          Concentración Dirichlet
           <input
             type="number"
             min={2}
@@ -143,9 +223,9 @@ function SimulacionSensibilidadEstocastica({
 
       {payload?.ok && (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="rounded-lg border border-gray-200 dark:border-gray-700/60 p-3">
-              <p className="text-[11px] uppercase tracking-wide text-gray-400">Simulaciones</p>
+              <p className="text-[11px] uppercase tracking-wide text-gray-400">Iteraciones</p>
               <p className="text-lg font-semibold text-gray-800 dark:text-gray-100">
                 {payload.muestras}
               </p>
@@ -158,10 +238,16 @@ function SimulacionSensibilidadEstocastica({
             </div>
             <div className="rounded-lg border border-gray-200 dark:border-gray-700/60 p-3">
               <p className="text-[11px] uppercase tracking-wide text-gray-400">
-                Estabilidad del ganador
+                P(1.º) ganador base
               </p>
               <p className="text-lg font-semibold text-navy-700 dark:text-navy-300">
                 {payload.estabilidad_ganador_pct?.toFixed?.(1) ?? payload.estabilidad_ganador_pct}%
+              </p>
+            </div>
+            <div className="rounded-lg border border-gray-200 dark:border-gray-700/60 p-3">
+              <p className="text-[11px] uppercase tracking-wide text-gray-400">Parada</p>
+              <p className="text-xs text-gray-700 dark:text-gray-200 leading-snug">
+                {payload.stop_reason || '—'}
               </p>
             </div>
           </div>
@@ -171,45 +257,80 @@ function SimulacionSensibilidadEstocastica({
             plotBgColor={plotBgColor}
           />
 
-          <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700/60">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-navy-900/60">
-                <tr>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Alternativa</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-500">P(1.º)</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Score medio</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Desv. std</th>
-                  <th className="px-3 py-2 text-left font-semibold text-gray-500">Rank base</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(payload.alternatives || []).map((alt) => (
-                  <tr
-                    key={alt.name}
-                    className="border-t border-gray-100 dark:border-gray-800/80"
-                  >
-                    <td className="px-3 py-2 font-medium">
-                      <span
-                        className="inline-block w-2.5 h-2.5 rounded-full mr-2 align-middle"
-                        style={{ backgroundColor: alt.color }}
-                      />
-                      {alt.name}
-                    </td>
-                    <td className="px-3 py-2 font-mono">
-                      {Number(alt.win_probability_pct).toFixed(1)}%
-                    </td>
-                    <td className="px-3 py-2 font-mono">
-                      {Number(alt.score_mean).toFixed(4)}
-                    </td>
-                    <td className="px-3 py-2 font-mono">
-                      {Number(alt.score_std).toFixed(4)}
-                    </td>
-                    <td className="px-3 py-2 font-mono">{alt.baseline_rank || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <RecordsTable
+            title="Dashboard de robustez"
+            subtitle="Score base, P(1.º), Q05, regret normalizado, estabilidad ordinal."
+            rows={payload.robustness_dashboard}
+          />
+
+          <MatrixTable
+            title="Aceptabilidad de rangos (SMAA-2)"
+            subtitle="Proporción de escenarios en los que cada alternativa ocupa cada puesto."
+            matrix={payload.rank_acceptability}
+          />
+
+          <MatrixTable
+            title="Preferencia pareada"
+            subtitle="P(score_i > score_k) sobre el muestreo de pesos."
+            matrix={payload.pairwise_preference}
+          />
+
+          <RecordsTable
+            title="Resumen de scores"
+            subtitle="Distribución del score agregado bajo incertidumbre de pesos."
+            rows={payload.score_summary}
+          />
+
+          <RecordsTable
+            title="Regret"
+            subtitle="Distancia al mejor score de cada iteración."
+            rows={payload.regret_summary}
+          />
+
+          {payload.convergence?.length > 0 && (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 p-3">
+              <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">
+                Diagnóstico de convergencia
+              </h4>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                Últimos puntos de control del monitor secuencial.
+              </p>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-xs">
+                  <thead className="bg-gray-50 dark:bg-navy-900/60">
+                    <tr>
+                      <th className="px-2 py-1.5 text-left">N</th>
+                      <th className="px-2 py-1.5 text-right">Δ rango</th>
+                      <th className="px-2 py-1.5 text-right">Δ cuantil</th>
+                      <th className="px-2 py-1.5 text-right">½ Wilson</th>
+                      <th className="px-2 py-1.5 text-left">Líder</th>
+                      <th className="px-2 py-1.5 text-left">OK</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payload.convergence.slice(-8).map((row) => (
+                      <tr key={row.id || row.iterations} className="border-t border-gray-100 dark:border-gray-800">
+                        <td className="px-2 py-1.5 font-mono">{row.iterations ?? row.id}</td>
+                        <td className="px-2 py-1.5 text-right font-mono">
+                          {Number(row.max_rank_change).toFixed(4)}
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-mono">
+                          {Number(row.max_quantile_change).toFixed(4)}
+                        </td>
+                        <td className="px-2 py-1.5 text-right font-mono">
+                          {Number(row.max_wilson_half_width).toFixed(4)}
+                        </td>
+                        <td className="px-2 py-1.5">{row.leading_alternative}</td>
+                        <td className="px-2 py-1.5">
+                          {row.criteria_satisfied ? 'sí' : 'no'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

@@ -25,7 +25,7 @@ function SimulacionSensibilidadEstocasticaCharts({
   const rankPlot = useMemo(() => {
     const alts = payload?.alternatives || [];
     if (!alts.length) return null;
-    const ranks = (alts[0]?.rank_frequency_pct || []).map((_, idx) => `Puesto ${idx + 1}`);
+        const ranks = (alts[0]?.rank_frequency_pct || []).map((_, idx) => `Rango ${idx + 1}`);
     return {
       alts,
       ranks,
@@ -43,10 +43,10 @@ function SimulacionSensibilidadEstocasticaCharts({
     <div className="space-y-4">
       <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 p-3">
         <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">
-          Probabilidad de quedar 1.º
+          Probabilidad de primer lugar P(rango=1)
         </h4>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-          Cuántas veces gana cada alternativa al perturbar los pesos entre dimensiones.
+          Aceptabilidad SMAA-2 del primer puesto bajo incertidumbre de pesos macro.
         </p>
         {winPlot ? (
           <Plot
@@ -83,10 +83,10 @@ function SimulacionSensibilidadEstocasticaCharts({
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 p-3">
         <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">
-          Distribución de puestos
+          Aceptabilidad de rangos
         </h4>
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-          Frecuencia con la que cada alternativa cae en cada posición del ranking.
+          Frecuencia con la que cada alternativa cae en cada rango del ordenamiento.
         </p>
         {rankPlot ? (
           <Plot

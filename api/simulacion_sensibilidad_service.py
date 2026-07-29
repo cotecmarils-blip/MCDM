@@ -21,8 +21,8 @@ ALT_COLORS = [
 WEIGHT_TOLERANCE = 1e-9
 DEFAULT_STEPS = 21
 MAX_STEPS = 101
-DEFAULT_STOCHASTIC_SAMPLES = 500
-MAX_STOCHASTIC_SAMPLES = 3000
+DEFAULT_STOCHASTIC_SAMPLES = 2048
+MAX_STOCHASTIC_SAMPLES = 16384
 DEFAULT_STOCHASTIC_CONCENTRATION = 40.0
 MIN_STOCHASTIC_CONCENTRATION = 2.0
 MAX_STOCHASTIC_CONCENTRATION = 500.0
@@ -582,13 +582,13 @@ def build_stochastic_sensibilidad_from_resultado(
     concentracion: float | None = None,
     seed: int | None = 42,
 ) -> dict[str, Any]:
-    """Sensibilidad estocástica macro: Monte Carlo sobre pesos entre dimensiones.
+    """Sensibilidad estocástica SMAA-macro (guía Joan / notebook 03_2).
 
-    Muestrea vectores de pesos cercanos a los del cálculo (Dirichlet centrada en
-    la línea base) y recalcula el ranking MADM. Reporta probabilidad de ganar,
-    frecuencias de puesto y estabilidad del ganador.
+    Muestrea pesos Dirichlet sobre el simplex de dimensiones, agrega (WSM o
+    TOPSIS) sobre la matriz ya normalizada del cálculo y reporta aceptabilidad
+    de rangos, P(1.º), dashboard de robustez, convergencia, etc.
     """
-    import numpy as np
+    from .stochastic_smaa_bridge import run_smaa_macro
 
     error = validate_sensibilidad_resultado(resultado)
     if error:
@@ -598,86 +598,52 @@ def build_stochastic_sensibilidad_from_resultado(
     ctx = _build_ranker_context(resultado)
     dimensions = ctx['dimensions']
     alternatives = ctx['alternatives']
-    base_weights = np.asarray(_baseline_weights(resultado, dimensions), dtype=float)
-    if base_weights.sum() <= WEIGHT_TOLERANCE:
+    matrix = ctx['matrix']
+    if not matrix or not alternatives or not dimensions:
+        return {'ok': False, 'mensaje': 'El cálculo no tiene matriz dimensional para SMAA.'}
+
+    base_weights = _baseline_weights(resultado, dimensions)
+    if sum(base_weights) <= WEIGHT_TOLERANCE:
         return {'ok': False, 'mensaje': 'Los pesos base del cálculo no son válidos.'}
 
-    baseline_rank = _rank_at_weights(ctx, base_weights.tolist())
-    baseline_winner = baseline_rank.get('best_alternative')
+    metodo = (ctx.get('metodo_madm') or 'topsis').lower()
+    aggregation = 'topsis' if metodo == 'topsis' else 'additive'
 
-    alpha = np.maximum(base_weights, 1e-6) * kappa
-    rng = np.random.default_rng(None if seed is None else int(seed))
-    sampled_weights = rng.dirichlet(alpha, size=n_samples)
-
-    n_alts = len(alternatives)
-    win_counts = {alt: 0 for alt in alternatives}
-    rank_counts = {alt: [0] * n_alts for alt in alternatives}
-    score_sums = {alt: 0.0 for alt in alternatives}
-    score_sq_sums = {alt: 0.0 for alt in alternatives}
-    same_winner = 0
-
-    for weights_row in sampled_weights:
-        rank_payload = _rank_at_weights(ctx, weights_row.tolist())
-        winner = rank_payload.get('best_alternative')
-        if winner == baseline_winner:
-            same_winner += 1
-        if winner in win_counts:
-            win_counts[winner] += 1
-
-        ranking_map = rank_payload.get('ranking') or {}
-        scores = rank_payload.get('scores') or {}
-        for alt in alternatives:
-            rank = int(ranking_map.get(alt) or 0)
-            if 1 <= rank <= n_alts:
-                rank_counts[alt][rank - 1] += 1
-            score = float(scores.get(alt, 0.0))
-            score_sums[alt] += score
-            score_sq_sums[alt] += score * score
-
-    alternatives_out = []
-    for idx, alt in enumerate(alternatives):
-        mean = score_sums[alt] / n_samples
-        var = max(0.0, (score_sq_sums[alt] / n_samples) - (mean * mean))
-        freq = [
-            round(count / n_samples, 6)
-            for count in rank_counts[alt]
+    # Direcciones del cálculo (informativas; matriz ya normalizada → benefit).
+    opciones = resultado.get('opciones_calculo') or {}
+    norm = resultado.get('normalizacion') or {}
+    raw_dirs = norm.get('directions') or opciones.get('direcciones') or []
+    if isinstance(raw_dirs, dict):
+        directions = [
+            str(raw_dirs.get(str(i + 1)) or raw_dirs.get(dimensions[i]) or 'max')
+            for i in range(len(dimensions))
         ]
-        alternatives_out.append({
-            'name': alt,
-            'color': ALT_COLORS[idx % len(ALT_COLORS)],
-            'win_probability': round(win_counts[alt] / n_samples, 6),
-            'win_probability_pct': round(100.0 * win_counts[alt] / n_samples, 2),
-            'rank_frequency': freq,
-            'rank_frequency_pct': [round(100.0 * f, 2) for f in freq],
-            'score_mean': round(mean, 6),
-            'score_std': round(float(np.sqrt(var)), 6),
-            'baseline_rank': int((baseline_rank.get('ranking') or {}).get(alt) or 0),
-            'baseline_score': round(float((baseline_rank.get('scores') or {}).get(alt, 0.0)), 6),
-        })
+    elif isinstance(raw_dirs, list) and len(raw_dirs) == len(dimensions):
+        directions = [str(d) for d in raw_dirs]
+    else:
+        directions = ['max'] * len(dimensions)
 
-    alternatives_out.sort(
-        key=lambda item: (-item['win_probability'], item['baseline_rank'] or 999, -item['score_mean']),
-    )
+    try:
+        payload = run_smaa_macro(
+            alternatives=alternatives,
+            criteria=dimensions,
+            matrix=matrix,
+            directions=directions,
+            nominal_weights=base_weights,
+            muestras=n_samples,
+            concentracion=kappa,
+            seed=42 if seed is None else int(seed),
+            aggregation=aggregation,
+            matrix_already_normalized=True,
+        )
+    except Exception as exc:  # noqa: BLE001 — devolver mensaje usable en UI
+        return {
+            'ok': False,
+            'mensaje': f'No se pudo ejecutar el análisis SMAA: {exc}',
+        }
 
-    return {
-        'ok': True,
-        'tipo': 'sensibilidad_estocastica_macro',
-        'nivel': 'macro',
-        'dimensions': dimensions,
-        'alternatives': alternatives_out,
-        'muestras': n_samples,
-        'concentracion': round(kappa, 4),
-        'seed': seed,
-        'metodo_madm': ctx['metodo_madm'],
-        'metodo_madm_label': _madm_label(ctx['metodo_madm']),
-        'pesos_base': {
-            dimensions[j]: round(float(base_weights[j]), 6) for j in range(len(dimensions))
-        },
-        'baseline_winner': baseline_winner,
-        'estabilidad_ganador': round(same_winner / n_samples, 6),
-        'estabilidad_ganador_pct': round(100.0 * same_winner / n_samples, 2),
-        'descripcion': (
-            f'Sensibilidad estocástica macro ({n_samples} simulaciones) sobre los pesos '
-            f'de dimensión del ranking {_madm_label(ctx["metodo_madm"])}.'
-        ),
-    }
+    payload['metodo_madm'] = metodo
+    payload['metodo_madm_label'] = _madm_label(metodo)
+    payload['tipo'] = 'sensibilidad_estocastica_smaa'
+    return payload
+

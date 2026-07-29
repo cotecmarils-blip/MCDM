@@ -56,18 +56,22 @@ def _resultado_fixture():
 
 
 class StochasticSensibilidadTests(SimpleTestCase):
-    def test_monte_carlo_macro_devuelve_probabilidades(self):
+    def test_smaa_macro_devuelve_metricas_guia(self):
         payload = build_stochastic_sensibilidad_from_resultado(
             _resultado_fixture(),
-            muestras=120,
+            muestras=256,
             concentracion=30,
             seed=7,
         )
 
-        self.assertTrue(payload['ok'])
-        self.assertEqual(payload['tipo'], 'sensibilidad_estocastica_macro')
-        self.assertEqual(payload['muestras'], 120)
+        self.assertTrue(payload.get('ok'), payload.get('mensaje'))
+        self.assertEqual(payload['tipo'], 'sensibilidad_estocastica_smaa')
+        self.assertGreaterEqual(payload['muestras'], 128)
         self.assertEqual(len(payload['alternatives']), 2)
+        self.assertIn('rank_acceptability', payload)
+        self.assertIn('robustness_dashboard', payload)
+        self.assertIn('pairwise_preference', payload)
+        self.assertTrue(payload.get('convergence'))
 
         win_sum = sum(item['win_probability'] for item in payload['alternatives'])
         self.assertAlmostEqual(win_sum, 1.0, places=5)
@@ -82,6 +86,6 @@ class StochasticSensibilidadTests(SimpleTestCase):
             concentracion=1,
             seed=1,
         )
-        self.assertTrue(payload['ok'])
+        self.assertTrue(payload.get('ok'), payload.get('mensaje'))
         self.assertGreaterEqual(payload['muestras'], 50)
         self.assertGreaterEqual(payload['concentracion'], 2.0)
