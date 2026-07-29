@@ -5,6 +5,8 @@ import {
   getEscenarioPesosHint,
   usesEscenarioPesos,
 } from '../criterios/escenarioAgregacionConstants';
+import PercentInput from '../PercentInput';
+import { parsePesoPercent } from '../../utils/pesoUtils';
 
 function EscenarioFormPanel({
   proyectoId,
@@ -126,7 +128,8 @@ function EscenarioFormPanel({
         proyecto: proyectoId,
       };
       if (formData.peso !== '' && aplicaPesosEscenario) {
-        payload.peso = Number(formData.peso);
+        const pesoNum = parsePesoPercent(formData.peso);
+        payload.peso = Number.isNaN(pesoNum) ? 0 : pesoNum;
       }
       if (isNew) {
         const res = await escenarios.create(payload);
@@ -268,34 +271,34 @@ function EscenarioFormPanel({
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
           Peso del escenario (%)
         </label>
-        <input
-          type="number"
+        <PercentInput
           name="peso"
           value={formData.peso}
-          onChange={handleChange}
-          min={0}
-          max={100}
-          step={0.01}
+          onChange={(next) => setFormData((prev) => ({ ...prev, peso: next }))}
           className={inputClass}
           placeholder="Ej. 33.33"
+          aria-label="Peso del escenario"
         />
         {formData.omoe && (
           <p className="text-xs mt-1 text-gray-500 dark:text-gray-400">
             Otros escenarios de la dimensión: {(pesoResumen ?? 0).toFixed(2)}%
-            {formData.peso !== '' && (
-              <>
-                {' '}
-                · Total con este:{' '}
-                {((pesoResumen ?? 0) + Number(formData.peso)).toFixed(2)}%
-              </>
-            )}
-            {formData.peso !== ''
-              && Math.abs((pesoResumen ?? 0) + Number(formData.peso) - 100) > 0.05 && (
-              <span className="text-amber-600 dark:text-amber-400">
-                {' '}
-                (la suma debe ser 100 %)
-              </span>
-            )}
+            {formData.peso !== '' && formData.peso != null && (() => {
+              const mine = parsePesoPercent(formData.peso);
+              const mineN = Number.isNaN(mine) ? 0 : mine;
+              const total = (pesoResumen ?? 0) + mineN;
+              return (
+                <>
+                  {' '}
+                  · Total con este: {total.toFixed(2)}%
+                  {Math.abs(total - 100) > 0.05 && (
+                    <span className="text-amber-600 dark:text-amber-400">
+                      {' '}
+                      (la suma debe ser 100 %)
+                    </span>
+                  )}
+                </>
+              );
+            })()}
           </p>
         )}
       </div>

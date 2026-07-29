@@ -388,7 +388,10 @@ export function validateUtilidadParams(familia, parametros = {}) {
 /** Suma pesos en centésimas para evitar 99.96 por float (0.1 + 0.2). */
 export function parsePesoPercent(value) {
   if (value === '' || value == null) return 0;
-  const n = Number(String(value).replace(',', '.'));
+  const s = String(value).trim().replace(',', '.');
+  // "20." a mitad de escritura → 20 (solo para sumas/validación, no para el input)
+  if (s === '' || s === '.') return 0;
+  const n = Number(s.endsWith('.') ? s.slice(0, -1) : s);
   return Number.isNaN(n) ? 0 : n;
 }
 

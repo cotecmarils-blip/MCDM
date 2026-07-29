@@ -9,6 +9,7 @@ import React, {
 import { escenarios } from '../../api';
 import PesoGrupoAhpPanel from './PesoGrupoAhpPanel';
 import { parsePesoPercent, sumPesosPercent } from './nodeFormSchemas';
+import PercentInput from '../PercentInput';
 
 const NodoEscenarioSection = forwardRef(function NodoEscenarioSection(
   {
@@ -182,6 +183,7 @@ const NodoEscenarioSection = forwardRef(function NodoEscenarioSection(
     setError(null);
     const payload = {
       ...form,
+      peso: parsePesoPercent(form.peso),
       ...(extra || {}),
       ...(propagar ? { propagar_a_todos: true } : {}),
     };
@@ -272,15 +274,12 @@ const NodoEscenarioSection = forwardRef(function NodoEscenarioSection(
               {showPesoManual && (
                 <label className="inline-flex items-center gap-1.5 text-xs text-gray-700 dark:text-gray-300">
                   <span className="text-gray-500">Peso</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.01"
+                  <PercentInput
                     disabled={disabled}
-                    value={form.peso ?? 0}
-                    onChange={(e) => patchForm({ peso: parsePesoPercent(e.target.value) })}
+                    value={form.peso ?? ''}
+                    onChange={(next) => patchForm({ peso: next === '' ? '' : next })}
                     className={`${inputClass} w-16 text-right tabular-nums`}
+                    aria-label="Peso porcentual"
                   />
                   <span className="text-gray-400">%</span>
                 </label>

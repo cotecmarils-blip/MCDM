@@ -1,6 +1,8 @@
 export function parsePesoPercent(value) {
   if (value === '' || value == null) return NaN;
-  const n = Number(String(value).replace(',', '.'));
+  const s = String(value).trim().replace(',', '.');
+  if (s === '' || s === '.') return NaN;
+  const n = Number(s.endsWith('.') ? s.slice(0, -1) : s);
   return Number.isNaN(n) ? NaN : n;
 }
 

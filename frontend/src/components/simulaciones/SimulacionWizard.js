@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { validatePesosDimensionesPercent } from '../../utils/pesoUtils';
+import PercentInput from '../PercentInput';
 import MetodoInfoDropdown from './MetodoInfoDropdown';
 import { NORMALIZATION_METHOD_DOCS, WEIGHT_METHOD_DOCS } from './simulacionMethodDocs';
 import SimulacionNombreField from './SimulacionNombreField';
@@ -498,16 +499,13 @@ function SimulacionWizard({
                         <div key={dim.omoe_id}>
                           <label className="text-xs text-gray-500">{dim.nombre}</label>
                           <div className="relative mt-1">
-                            <input
-                              type="number"
-                              min="0"
-                              max="100"
-                              step="0.01"
+                            <PercentInput
                               disabled={loading}
                               value={(calcConfig.pesos_usuario || [])[idx] ?? ''}
-                              onChange={(e) => setPesoUsuario(idx, e.target.value)}
+                              onChange={(next) => setPesoUsuario(idx, next === '' ? '' : next)}
                               className={`${PESO_INPUT_CLASS} pr-8`}
                               placeholder="33.33"
+                              aria-label={`Peso de ${dim.nombre}`}
                             />
                             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
                               %

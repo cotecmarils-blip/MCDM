@@ -10,6 +10,7 @@ import { defaultMopCriterioFields } from './mopCriterioOptions';
 import { RAMA_MOP_PRESETS } from './ramaContext';
 import { DIMENSION_RAMA_OPTIONS } from './ramaEvaluacionOptions';
 import { defaultsForRama } from './escenarioAgregacionConstants';
+import PercentInput from '../PercentInput';
 
 const NAME_FIELDS = new Set([
   'nombre',
@@ -43,7 +44,7 @@ const DEFERRED_FROM_SCHEMA = new Set([
 ]);
 
 function renderField(field, ctx) {
-  const { level, formData, disabled, inputClass, handleInput } = ctx;
+  const { level, formData, disabled, inputClass, handleInput, handleField } = ctx;
   const id = `criterio-${level}-${field.name}`;
   const val = formData[field.name];
   const isRequired = field.required && !disabled;
@@ -122,19 +123,38 @@ function renderField(field, ctx) {
         {field.label}
         {isRequired && ' *'}
       </label>
-      <input
-        id={id}
-        type={field.type === 'number' ? 'number' : 'text'}
-        name={field.name}
-        value={val ?? ''}
-        onChange={handleInput}
-        disabled={disabled}
-        required={isRequired}
-        step={field.step}
-        min={field.min}
-        max={field.max}
-        className={`${inputClass} ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
-      />
+      {field.name === 'peso' ? (
+        <div className="relative">
+          <PercentInput
+            id={id}
+            name={field.name}
+            value={val ?? ''}
+            onChange={(next) => handleField(field.name, next)}
+            disabled={disabled}
+            min={field.min}
+            max={field.max}
+            className={`${inputClass} pr-8 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+            aria-label={field.label}
+          />
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+            %
+          </span>
+        </div>
+      ) : (
+        <input
+          id={id}
+          type={field.type === 'number' ? 'number' : 'text'}
+          name={field.name}
+          value={val ?? ''}
+          onChange={handleInput}
+          disabled={disabled}
+          required={isRequired}
+          step={field.step}
+          min={field.min}
+          max={field.max}
+          className={`${inputClass} ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+        />
+      )}
     </div>
   );
 }
@@ -240,7 +260,7 @@ function CriterioDynamicForm({
     });
   };
 
-  const ctx = { level, formData, disabled, inputClass, handleInput };
+  const ctx = { level, formData, disabled, inputClass, handleInput, handleField };
 
   const prioritySchema = schema.filter((f) => PRIORITY_FIELDS.has(f.name));
   const nameSchema = schema.filter((f) => NAME_FIELDS.has(f.name) || f.name === 'codigo');
