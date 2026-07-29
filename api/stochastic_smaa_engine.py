@@ -13,8 +13,6 @@ import warnings
 import numpy as np
 import pandas as pd
 from numpy.typing import NDArray
-from scipy import stats
-from scipy.stats import qmc
 
 FloatArray = NDArray[np.float64]
 IntArray = NDArray[np.int64]
@@ -198,14 +196,24 @@ class SimplexWeightSampler:
         self.config = config
         self.alpha = config.resolved_alpha(self.dimension)
         self.rng = np.random.default_rng(config.seed)
-        self._engine: Optional[qmc.QMCEngine]
+        self._engine = None
+
+        if config.method == "mc":
+            return
+
+        # LHS / Sobol requieren SciPy (opcional). Monte Carlo solo usa NumPy.
+        try:
+            from scipy.stats import qmc  # type: ignore
+        except ImportError as exc:  # pragma: no cover
+            raise ImportError(
+                "Para muestreo LHS/Sobol instale SciPy (pip install scipy). "
+                "El modo Monte Carlo (mc) no lo requiere."
+            ) from exc
 
         if config.method == "lhs":
             self._engine = qmc.LatinHypercube(d=self.dimension, seed=config.seed)
         elif config.method == "sobol":
             self._engine = qmc.Sobol(d=self.dimension, scramble=True, seed=config.seed)
-        elif config.method == "mc":
-            self._engine = None
         else:
             raise ValueError(f"Método de muestreo no reconocido: {config.method}")
 
@@ -226,6 +234,8 @@ class SimplexWeightSampler:
         """Transforma variables uniformes en realizaciones Dirichlet."""
         if self.config.method == "mc":
             return self.rng.dirichlet(self.alpha, size=n)
+
+        from scipy import stats  # type: ignore
 
         unit = self._unit_sample(n)
         gamma_values = stats.gamma.ppf(unit, a=self.alpha, scale=1.0)

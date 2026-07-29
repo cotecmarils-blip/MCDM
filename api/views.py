@@ -1907,6 +1907,14 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
             except ValidationError as exc:
                 detail = exc.messages[0] if getattr(exc, 'messages', None) else str(exc)
                 return Response({'ok': False, 'mensaje': detail}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as exc:  # noqa: BLE001 — devolver error usable en UI
+                return Response(
+                    {
+                        'ok': False,
+                        'mensaje': f'Error al calcular la sensibilidad estocástica: {exc}',
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
             if not payload.get('ok'):
                 return Response(payload, status=status.HTTP_400_BAD_REQUEST)
             return Response(payload)

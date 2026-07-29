@@ -133,10 +133,14 @@ function SimulacionSensibilidadEstocastica({
       setPayload(res.data);
     } catch (err) {
       setPayload(null);
+      const data = err.response?.data;
       setError(
-        err.response?.data?.mensaje
-          || err.response?.data?.detail
-          || 'Error al calcular la sensibilidad estocástica.',
+        (typeof data?.mensaje === 'string' && data.mensaje)
+          || (typeof data?.detail === 'string' && data.detail)
+          || (typeof data?.error === 'string' && data.error)
+          || (err.response
+            ? `Error del servidor (${err.response.status}). Vuelva a intentar tras el deploy.`
+            : 'Error de red al calcular la sensibilidad estocástica.'),
       );
     } finally {
       setLoading(false);
