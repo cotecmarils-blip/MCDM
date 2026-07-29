@@ -441,6 +441,7 @@ def run_smaa_macro(
     sampling_method: str = 'mc',
     admissibility_threshold: float | None = None,
     surface_resolution: int = 24,
+    uniform_dirichlet: bool = False,
 ) -> dict[str, Any]:
     """Ejecuta escenario exclusivamente macro del notebook Joan."""
     alts = tuple(str(a) for a in alternatives)
@@ -466,8 +467,9 @@ def run_smaa_macro(
     method = _resolve_sampling_method(sampling_method)
     sampling = SamplingConfig(
         method=method,
-        nominal_weights=w,
-        concentration=float(concentracion),
+        alpha=np.ones(len(crit), dtype=float) if uniform_dirichlet else None,
+        nominal_weights=None if uniform_dirichlet else w,
+        concentration=None if uniform_dirichlet else float(concentracion),
         constraints=WeightConstraints(),
         seed=int(seed),
     )
@@ -497,6 +499,7 @@ def run_smaa_macro(
     )
     payload['pesos_base'] = {crit[j]: round(float(w[j]), 6) for j in range(len(crit))}
     payload['seed'] = int(seed)
+    payload['uniform_dirichlet'] = bool(uniform_dirichlet)
     return payload
 
 
@@ -518,6 +521,7 @@ def run_smaa_meso_macro(
     admissibility_threshold: float | None = None,
     surface_resolution: int = 24,
     context_labels: list[str] | None = None,
+    uniform_dirichlet: bool = False,
 ) -> dict[str, Any]:
     """Escenario meso–macro Joan: OMOE = λ·z contextual; OMOC/OMOR fijos."""
     alts = tuple(str(a) for a in alternatives)
@@ -549,15 +553,17 @@ def run_smaa_meso_macro(
     kappa_m = float(concentracion_meso if concentracion_meso is not None else concentracion)
     macro_sampling = SamplingConfig(
         method=method,
-        nominal_weights=w_macro,
-        concentration=float(concentracion),
+        alpha=np.ones(3, dtype=float) if uniform_dirichlet else None,
+        nominal_weights=None if uniform_dirichlet else w_macro,
+        concentration=None if uniform_dirichlet else float(concentracion),
         constraints=WeightConstraints(),
         seed=int(seed),
     )
     meso_sampling = SamplingConfig(
         method=method,
-        nominal_weights=w_meso,
-        concentration=kappa_m,
+        alpha=np.ones(2, dtype=float) if uniform_dirichlet else None,
+        nominal_weights=None if uniform_dirichlet else w_meso,
+        concentration=None if uniform_dirichlet else kappa_m,
         constraints=WeightConstraints(),
         seed=int(seed) + 17,
     )
@@ -594,4 +600,5 @@ def run_smaa_meso_macro(
     payload['omoe_context_labels'] = context_labels or ['contexto_1', 'contexto_2']
     payload['seed'] = int(seed)
     payload['concentracion_meso'] = round(kappa_m, 4)
+    payload['uniform_dirichlet'] = bool(uniform_dirichlet)
     return payload

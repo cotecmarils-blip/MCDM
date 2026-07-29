@@ -121,16 +121,17 @@ function SimulacionSensibilidadEstocastica({
   const [samplingMethod, setSamplingMethod] = useState('mc');
   const [umbral, setUmbral] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [ejemploJoan, setEjemploJoan] = useState(false);
   const [payload, setPayload] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const runAnalysis = useCallback(async () => {
-    if (!proyectoId || !resultado) return;
+    if (!proyectoId || (!resultado && !ejemploJoan)) return;
     setLoading(true);
     setError(null);
     try {
-      const body = sensibilidadRequestBody(resultado, {
+      const body = sensibilidadRequestBody(ejemploJoan ? {} : resultado, {
         accion: 'estocastica',
         nivel,
         muestras: Number(muestras) || 2048,
@@ -138,10 +139,21 @@ function SimulacionSensibilidadEstocastica({
         concentracion_meso: Number(concentracionMeso) || 40,
         sampling_method: samplingMethod,
         seed: 42,
+        ejemplo_joan: ejemploJoan,
       });
-      if (umbral !== '' && umbral != null) {
+      if (ejemploJoan) {
+        body.ejemplo_joan = true;
+        // Demo no depende del historial guardado.
+        delete body.historial_id;
+        delete body.resultado;
+      }
+      if (!ejemploJoan && umbral !== '' && umbral != null) {
         const thr = Number(umbral);
         if (!Number.isNaN(thr)) body.admissibility_threshold = thr;
+      }
+      if (ejemploJoan) {
+        // La guía usa umbral 0.40
+        body.admissibility_threshold = 0.4;
       }
       const res = await simulacionApi.sensibilidad(proyectoId, body);
       if (!res.data?.ok) {
@@ -173,6 +185,7 @@ function SimulacionSensibilidadEstocastica({
     concentracionMeso,
     samplingMethod,
     umbral,
+    ejemploJoan,
   ]);
 
   useEffect(() => {
@@ -233,7 +246,37 @@ function SimulacionSensibilidadEstocastica({
         >
           Meso–macro
         </button>
+        <button
+          type="button"
+          onClick={() => {
+            setEjemploJoan((v) => {
+              const next = !v;
+              if (next) {
+                setMuestras(4096);
+                setUmbral('0.4');
+                setSamplingMethod('mc');
+              }
+              return next;
+            });
+          }}
+          className={`px-3 py-1.5 rounded-lg text-sm border ${
+            ejemploJoan
+              ? 'bg-amber-700 text-white border-amber-700'
+              : 'border-amber-300 text-amber-800 dark:border-amber-600 dark:text-amber-200'
+          }`}
+          title="Usa la matriz A–F / OMOC·OMOE·OMOR del PDF 03_2"
+        >
+          {ejemploJoan ? 'Demo guía Joan (activa)' : 'Cargar ejemplo guía Joan (PDF)'}
+        </button>
       </div>
+
+      {ejemploJoan && (
+        <p className="text-xs text-amber-800 dark:text-amber-200 rounded-lg border border-amber-200 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-900/20 px-3 py-2">
+          Demo del PDF §13/§14: alternativas A–F, matriz OMOC/OMOE/OMOR, Dirichlet uniforme,
+          umbral de admisibilidad 0.40 y agregación aditiva. No usa el cálculo del proyecto;
+          sirve para revisar el módulo frente a la guía. Cambia macro ↔ meso–macro y pulsa Recalcular.
+        </p>
+      )}
 
       <div className="rounded-xl border border-gray-200 dark:border-gray-700/60 bg-white/70 dark:bg-navy-950/30 p-3 flex flex-wrap gap-3 items-end">
         <label className="text-xs text-gray-600 dark:text-gray-300">

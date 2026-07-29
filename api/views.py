@@ -1848,7 +1848,8 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
 
         resultado = body.get('resultado')
         historial_id = body.get('historial_id')
-        if historial_id and not resultado:
+        ejemplo_joan = bool(body.get('ejemplo_joan') or body.get('demo_joan'))
+        if historial_id and not resultado and not ejemplo_joan:
             try:
                 historial = get_simulacion_historial(proyecto, int(historial_id))
                 resultado = historial.get('resultado')
@@ -1899,16 +1900,26 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
         if accion in {'estocastica', 'estocástica', 'stochastic'}:
             try:
                 thr = body.get('admissibility_threshold', body.get('umbral_admisibilidad'))
-                payload = build_stochastic_sensibilidad_from_resultado(
-                    resultado or {},
-                    muestras=body.get('muestras'),
-                    concentracion=body.get('concentracion'),
-                    concentracion_meso=body.get('concentracion_meso'),
-                    seed=body.get('seed', 42),
-                    nivel=body.get('nivel') or 'macro',
-                    sampling_method=body.get('sampling_method') or body.get('metodo_muestreo') or 'mc',
-                    admissibility_threshold=thr,
-                )
+                if body.get('ejemplo_joan') or body.get('demo_joan'):
+                    from .joan_smaa_demo import run_joan_guide_demo
+
+                    payload = run_joan_guide_demo(
+                        nivel=body.get('nivel') or 'macro',
+                        muestras=body.get('muestras'),
+                        seed=body.get('seed'),
+                        sampling_method=body.get('sampling_method') or body.get('metodo_muestreo') or 'mc',
+                    )
+                else:
+                    payload = build_stochastic_sensibilidad_from_resultado(
+                        resultado or {},
+                        muestras=body.get('muestras'),
+                        concentracion=body.get('concentracion'),
+                        concentracion_meso=body.get('concentracion_meso'),
+                        seed=body.get('seed', 42),
+                        nivel=body.get('nivel') or 'macro',
+                        sampling_method=body.get('sampling_method') or body.get('metodo_muestreo') or 'mc',
+                        admissibility_threshold=thr,
+                    )
             except ValidationError as exc:
                 detail = exc.messages[0] if getattr(exc, 'messages', None) else str(exc)
                 return Response({'ok': False, 'mensaje': detail}, status=status.HTTP_400_BAD_REQUEST)

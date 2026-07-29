@@ -209,3 +209,21 @@ class StochasticSensibilidadTests(SimpleTestCase):
         self.assertTrue(payload['ok'])
         self.assertEqual(payload['nivel'], 'meso_macro')
         json.dumps(payload, allow_nan=False)
+
+    def test_joan_guide_demo_macro_y_meso(self):
+        from api.joan_smaa_demo import run_joan_guide_demo
+
+        macro = run_joan_guide_demo(nivel='macro', muestras=512)
+        self.assertTrue(macro['ok'], macro.get('mensaje'))
+        self.assertTrue(macro.get('ejemplo_joan'))
+        self.assertEqual(len(macro['alternatives']), 6)
+        self.assertTrue(macro.get('ternary_winner_map'))
+        self.assertTrue(macro.get('surfaces_3d'))
+        self.assertEqual(macro.get('admissibility_threshold'), 0.4)
+        json.dumps(macro, allow_nan=False)
+
+        meso = run_joan_guide_demo(nivel='meso_macro', muestras=512)
+        self.assertTrue(meso['ok'], meso.get('mensaje'))
+        self.assertEqual(meso['nivel'], 'meso_macro')
+        self.assertIsNotNone(meso.get('omoe_derived_distribution'))
+        json.dumps(meso, allow_nan=False)
