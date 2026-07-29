@@ -593,9 +593,13 @@ def wilson_half_width(
     confidence: float,
 ) -> FloatArray:
     """Semiancho del intervalo de Wilson para proporciones binomiales."""
-    # Evitar SciPy: Φ⁻¹ via erfinv (solo NumPy / math).
-    p = 0.5 + confidence / 2.0
-    z = float(np.sqrt(2.0) * math.erfinv(2.0 * p - 1.0))
+    # Cuantiles estándar sin depender de SciPy en el camino Monte Carlo.
+    z_table = {
+        0.90: 1.6448536269514722,
+        0.95: 1.959963984540054,
+        0.99: 2.5758293035489004,
+    }
+    z = z_table.get(round(float(confidence), 2), 1.959963984540054)
     p_hat = np.asarray(successes, dtype=float) / n
     denominator = 1.0 + (z**2) / n
     inside = p_hat * (1.0 - p_hat) / n + (z**2) / (4.0 * n**2)
