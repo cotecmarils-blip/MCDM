@@ -36,7 +36,10 @@ function SimulacionResumenGlobal({ resultado }) {
   const metodoMadm = MADM_LABELS[resultado?.opciones_calculo?.metodo_madm]
     || resultado?.opciones_calculo?.metodo_madm
     || 'MADM';
-  const madmPorMetodo = resultado?.madm_por_metodo || {};
+  const madmPorMetodo = useMemo(
+    () => resultado?.madm_por_metodo || {},
+    [resultado?.madm_por_metodo],
+  );
   const metodosMadmKeys = useMemo(
     () => Object.keys(madmPorMetodo),
     [madmPorMetodo],
