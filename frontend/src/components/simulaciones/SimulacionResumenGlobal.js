@@ -19,8 +19,15 @@ const MADM_LABELS = {
   wpm: 'WPM',
 };
 
+function formatMadmScore(value) {
+  if (value == null || Number.isNaN(Number(value))) return '—';
+  return Number(value).toFixed(4);
+}
+
 function SimulacionResumenGlobal({ resultado }) {
   const [showMatriz, setShowMatriz] = useState(false);
+  const [cmpView, setCmpView] = useState('ambos'); // rangos | scores | ambos
+  const [showDetalleMetodos, setShowDetalleMetodos] = useState(false);
   const alternativas = useMemo(
     () => resultado?.alternativas || [],
     [resultado?.alternativas],
@@ -30,7 +37,11 @@ function SimulacionResumenGlobal({ resultado }) {
     || resultado?.opciones_calculo?.metodo_madm
     || 'MADM';
   const madmPorMetodo = resultado?.madm_por_metodo || {};
-  const metodosExtra = Object.keys(madmPorMetodo).filter(
+  const metodosMadmKeys = useMemo(
+    () => Object.keys(madmPorMetodo),
+    [madmPorMetodo],
+  );
+  const metodosExtra = metodosMadmKeys.filter(
     (k) => k !== resultado?.opciones_calculo?.metodo_madm,
   );
 
@@ -122,25 +133,49 @@ function SimulacionResumenGlobal({ resultado }) {
         </div>
       </div>
 
-      {Object.keys(madmPorMetodo).length > 1 && (
+      {metodosMadmKeys.length > 1 && (
         <div className="rounded-lg border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-navy-900 overflow-x-auto">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800/80">
-            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
-              Comparación entre métodos MADM
-            </h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              Rango (1 = mejor) por cada método seleccionado.
-              Primario del historial: <strong>{metodoMadm}</strong>
-              {metodosExtra.length > 0 && (
-                <> · también: {metodosExtra.map((m) => MADM_LABELS[m] || m).join(', ')}</>
-              )}.
-            </p>
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800/80 space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+                  Comparación entre métodos MADM
+                </h4>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  La matriz normalizada es la misma para todos; cada método produce su propia
+                  puntuación y rango (1 = mejor). Primario: <strong>{metodoMadm}</strong>
+                  {metodosExtra.length > 0 && (
+                    <> · también: {metodosExtra.map((m) => MADM_LABELS[m] || m).join(', ')}</>
+                  )}.
+                </p>
+              </div>
+              <div className="inline-flex rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden text-[11px] shrink-0">
+                {[
+                  { id: 'rangos', label: 'Rangos' },
+                  { id: 'scores', label: 'Puntuaciones' },
+                  { id: 'ambos', label: 'Ambos' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => setCmpView(opt.id)}
+                    className={`px-2.5 py-1.5 font-medium transition-colors ${
+                      cmpView === opt.id
+                        ? 'bg-navy-500 text-white'
+                        : 'bg-white dark:bg-navy-950 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-navy-900'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <table className="min-w-full text-sm">
             <thead className="bg-gray-50 dark:bg-navy-900/60 text-left text-[10px] uppercase text-gray-400">
               <tr>
                 <th className="px-3 py-2 font-semibold">Alternativa</th>
-                {Object.keys(madmPorMetodo).map((mk) => (
+                {metodosMadmKeys.map((mk) => (
                   <th key={mk} className="px-3 py-2 font-semibold whitespace-nowrap">
                     {MADM_LABELS[mk] || mk}
                     {mk === resultado?.opciones_calculo?.metodo_madm ? ' ★' : ''}
@@ -152,11 +187,22 @@ function SimulacionResumenGlobal({ resultado }) {
               {activas.map((alt) => (
                 <tr key={`cmp-${alt.id}`} className="border-t border-gray-100 dark:border-gray-800/80">
                   <td className="px-3 py-2 font-medium">{alt.nombre}</td>
-                  {Object.entries(madmPorMetodo).map(([mk, md]) => {
+                  {metodosMadmKeys.map((mk) => {
+                    const md = madmPorMetodo[mk];
                     const rank = md?.ranking_by_alternative?.[alt.nombre];
+                    const score = md?.scores_by_alternative?.[alt.nombre];
                     return (
-                      <td key={`${alt.id}-${mk}`} className="px-3 py-2 font-mono">
-                        {rank != null ? rank : '—'}
+                      <td key={`${alt.id}-${mk}`} className="px-3 py-2 font-mono text-xs sm:text-sm">
+                        {cmpView === 'rangos' && (rank != null ? rank : '—')}
+                        {cmpView === 'scores' && formatMadmScore(score)}
+                        {cmpView === 'ambos' && (
+                          <span className="inline-flex flex-col leading-tight">
+                            <span className="font-semibold">{rank != null ? `#${rank}` : '—'}</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                              {formatMadmScore(score)}
+                            </span>
+                          </span>
+                        )}
                       </td>
                     );
                   })}
@@ -164,6 +210,86 @@ function SimulacionResumenGlobal({ resultado }) {
               ))}
             </tbody>
           </table>
+
+          <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-800/80">
+            <button
+              type="button"
+              onClick={() => setShowDetalleMetodos((v) => !v)}
+              className="text-xs font-medium text-navy-600 dark:text-navy-400 hover:underline"
+            >
+              {showDetalleMetodos ? 'Ocultar' : 'Ver'} ranking completo por método
+            </button>
+            {showDetalleMetodos && (
+              <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {metodosMadmKeys.map((mk) => {
+                  const md = madmPorMetodo[mk];
+                  const isPrimary = mk === resultado?.opciones_calculo?.metodo_madm;
+                  const rows = [...activas]
+                    .map((alt) => ({
+                      id: alt.id,
+                      nombre: alt.nombre,
+                      rank: md?.ranking_by_alternative?.[alt.nombre],
+                      score: md?.scores_by_alternative?.[alt.nombre],
+                    }))
+                    .sort((a, b) => {
+                      const ra = a.rank == null ? 9999 : a.rank;
+                      const rb = b.rank == null ? 9999 : b.rank;
+                      return ra - rb;
+                    });
+                  const params = md?.params && Object.keys(md.params).length
+                    ? Object.entries(md.params)
+                      .map(([k, v]) => `${k}=${v}`)
+                      .join(', ')
+                    : null;
+                  return (
+                    <div
+                      key={`det-${mk}`}
+                      className={`rounded-lg border overflow-hidden ${
+                        isPrimary
+                          ? 'border-navy-500/40'
+                          : 'border-gray-200 dark:border-gray-700/60'
+                      }`}
+                    >
+                      <div className="px-3 py-2 bg-gray-50 dark:bg-navy-900/60 flex items-baseline justify-between gap-2">
+                        <p className="text-xs font-semibold text-gray-800 dark:text-gray-100">
+                          {MADM_LABELS[mk] || mk}
+                          {isPrimary ? ' ★' : ''}
+                        </p>
+                        {params && (
+                          <p className="text-[10px] text-gray-500 font-mono">{params}</p>
+                        )}
+                      </div>
+                      <table className="min-w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-[10px] uppercase text-gray-400">
+                            <th className="px-3 py-1.5 font-semibold">#</th>
+                            <th className="px-3 py-1.5 font-semibold">Alternativa</th>
+                            <th className="px-3 py-1.5 font-semibold">Puntuación</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rows.map((row) => (
+                            <tr
+                              key={`${mk}-${row.id}`}
+                              className="border-t border-gray-100 dark:border-gray-800/80"
+                            >
+                              <td className="px-3 py-1.5 font-bold text-navy-600">
+                                {row.rank != null ? row.rank : '—'}
+                              </td>
+                              <td className="px-3 py-1.5 font-medium">{row.nombre}</td>
+                              <td className="px-3 py-1.5 font-mono">
+                                {formatMadmScore(row.score)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -227,7 +353,7 @@ function SimulacionResumenGlobal({ resultado }) {
             onClick={() => setShowMatriz((v) => !v)}
             className="text-xs font-medium text-navy-600 dark:text-navy-400 hover:underline"
           >
-            {showMatriz ? 'Ocultar' : 'Ver'} matriz normalizada usada en el cálculo
+            {showMatriz ? 'Ocultar' : 'Ver'} matriz normalizada (única, compartida por todos los métodos)
           </button>
           {showMatriz && (
             <div className="mt-2 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700/60">
