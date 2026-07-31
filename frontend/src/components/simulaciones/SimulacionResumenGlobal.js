@@ -29,6 +29,10 @@ function SimulacionResumenGlobal({ resultado }) {
   const metodoMadm = MADM_LABELS[resultado?.opciones_calculo?.metodo_madm]
     || resultado?.opciones_calculo?.metodo_madm
     || 'MADM';
+  const madmPorMetodo = resultado?.madm_por_metodo || {};
+  const metodosExtra = Object.keys(madmPorMetodo).filter(
+    (k) => k !== resultado?.opciones_calculo?.metodo_madm,
+  );
 
   const norm = resultado?.normalizacion;
   const matrizNorm = norm?.normalized_matrix;
@@ -117,6 +121,51 @@ function SimulacionResumenGlobal({ resultado }) {
           </table>
         </div>
       </div>
+
+      {Object.keys(madmPorMetodo).length > 1 && (
+        <div className="rounded-lg border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-navy-900 overflow-x-auto">
+          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800/80">
+            <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100">
+              Comparación entre métodos MADM
+            </h4>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              Rango (1 = mejor) por cada método seleccionado.
+              Primario del historial: <strong>{metodoMadm}</strong>
+              {metodosExtra.length > 0 && (
+                <> · también: {metodosExtra.map((m) => MADM_LABELS[m] || m).join(', ')}</>
+              )}.
+            </p>
+          </div>
+          <table className="min-w-full text-sm">
+            <thead className="bg-gray-50 dark:bg-navy-900/60 text-left text-[10px] uppercase text-gray-400">
+              <tr>
+                <th className="px-3 py-2 font-semibold">Alternativa</th>
+                {Object.keys(madmPorMetodo).map((mk) => (
+                  <th key={mk} className="px-3 py-2 font-semibold whitespace-nowrap">
+                    {MADM_LABELS[mk] || mk}
+                    {mk === resultado?.opciones_calculo?.metodo_madm ? ' ★' : ''}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {activas.map((alt) => (
+                <tr key={`cmp-${alt.id}`} className="border-t border-gray-100 dark:border-gray-800/80">
+                  <td className="px-3 py-2 font-medium">{alt.nombre}</td>
+                  {Object.entries(madmPorMetodo).map(([mk, md]) => {
+                    const rank = md?.ranking_by_alternative?.[alt.nombre];
+                    return (
+                      <td key={`${alt.id}-${mk}`} className="px-3 py-2 font-mono">
+                        {rank != null ? rank : '—'}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {alternativas.some((a) => a.excluida_pareto) && (
         <p className="text-xs text-amber-700 dark:text-amber-400">

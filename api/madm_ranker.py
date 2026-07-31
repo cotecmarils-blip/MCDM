@@ -22,8 +22,40 @@ from pymcdm.methods import (
     WSM,
     WPM,
 )
+from pymcdm.methods.codas import _psi as _codas_psi
+from pymcdm import helpers, normalizations
 
 from .madm_copras import ClassicalCOPRAS
+
+
+class ConfigurableCODAS(CODAS):
+    """CODAS con umbral τ configurable (pymcdm lo fija en 0.02 dentro de `_psi`)."""
+
+    def __init__(
+        self,
+        normalization_function=normalizations.linear_normalization,
+        *,
+        tau: float = 0.02,
+    ):
+        super().__init__(normalization_function=normalization_function)
+        self.tau = float(tau)
+
+    def _method(self, matrix, weights, types):
+        nmatrix = helpers.normalize_matrix(matrix, self.normalization, types)
+        weighted_matrix = nmatrix * weights
+        n, _m = weighted_matrix.shape
+        nis = np.min(weighted_matrix, axis=0)
+        E = np.sqrt(np.sum((weighted_matrix - nis) ** 2, axis=1))
+        T = np.sum(np.abs(weighted_matrix - nis), axis=1)
+        h = np.zeros((n, n))
+        tau = self.tau
+        for i in range(n):
+            for j in range(n):
+                h[i, j] = (E[i] - E[j]) + (
+                    _codas_psi(E[i] - E[j], tau=tau) * (T[i] - T[j])
+                )
+        H = np.sum(h, axis=1)
+        return nmatrix, weighted_matrix, nis, E, T, h, H
 
 
 class Direction(str, Enum):
@@ -101,6 +133,7 @@ class MADMResult:
     best_alternative: str
     best_index: int
     matrix_orientation: MatrixOrientation
+    params: dict[str, float] | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -127,6 +160,7 @@ class MADMResult:
             "best_alternative": self.best_alternative,
             "best_index": self.best_index,
             "matrix_orientation": self.matrix_orientation.value,
+            "params": dict(self.params or {}),
         }
 
 
@@ -410,7 +444,7 @@ class MADMRanker:
         # COPRAS: implementación propia (fórmula clásica). pymcdm.COPRAS es incorrecta.
         MADMMethod.COPRAS: ClassicalCOPRAS,
         MADMMethod.ARAS: ARAS,
-        MADMMethod.CODAS: CODAS,
+        MADMMethod.CODAS: ConfigurableCODAS,
         MADMMethod.EDAS: EDAS,
         MADMMethod.MABAC: MABAC,
         MADMMethod.MARCOS: MARCOS,
@@ -622,20 +656,56 @@ class MADMRanker:
 
         return ranking
 
+    def _build_method_instance(
+        self,
+        method: MADMMethod,
+        method_params: dict[str, Any] | None = None,
+    ):
+        """Instancia el método MADM aplicando parámetros opcionales (v, λ, τ)."""
+        params = method_params or {}
+        used: dict[str, float] = {}
+        method_class = self._METHOD_REGISTRY[method]
+
+        if method == MADMMethod.VIKOR:
+            v = float(params.get('v', 0.5))
+            if not 0.0 <= v <= 1.0:
+                raise ValueError('VIKOR: el parámetro v debe estar en [0, 1].')
+            used['v'] = v
+            return method_class(v=v), used
+
+        if method == MADMMethod.WASPAS:
+            lam = float(params.get('l', params.get('lambda', 0.5)))
+            if not 0.0 <= lam <= 1.0:
+                raise ValueError('WASPAS: el parámetro λ (l) debe estar en [0, 1].')
+            used['l'] = lam
+            return method_class(l=lam), used
+
+        if method == MADMMethod.CODAS:
+            tau = float(params.get('tau', 0.02))
+            if tau < 0.0:
+                raise ValueError('CODAS: el umbral τ debe ser ≥ 0.')
+            used['tau'] = tau
+            return method_class(tau=tau), used
+
+        return method_class(), used
+
     def rank(
         self,
         method: str | MADMMethod,
         *,
         weights: Sequence[float] | npt.NDArray[np.float64],
         weight_method: str | WeightMethod = WeightMethod.USER_DEFINED,
+        method_params: dict[str, Any] | None = None,
     ) -> MADMResult:
         selected_method = self._parse_madm_method(method)
         selected_weight_method = WeightCalculator._parse_weight_method(weight_method)
 
         validated_weights = self._validate_weights(weights)
 
-        method_class = self._METHOD_REGISTRY[selected_method]
-        method_instance = method_class()
+        method_instance, used_params = self._build_method_instance(
+            selected_method,
+            method_params,
+        )
 
         scores = method_instance(
             self._matrix,
@@ -671,6 +741,7 @@ class MADMRanker:
             best_alternative=best_alternative,
             best_index=best_index,
             matrix_orientation=self._matrix_orientation,
+            params=used_params or None,
         )
 
     def rank_as_dict(
@@ -679,11 +750,13 @@ class MADMRanker:
         *,
         weights: Sequence[float] | npt.NDArray[np.float64],
         weight_method: str | WeightMethod = WeightMethod.USER_DEFINED,
+        method_params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return self.rank(
             method,
             weights=weights,
             weight_method=weight_method,
+            method_params=method_params,
         ).to_dict()
 
     def rank_with_weight_method(
@@ -692,6 +765,7 @@ class MADMRanker:
         *,
         weight_method: str | WeightMethod,
         user_weights: Sequence[float] | npt.NDArray[np.float64] | None = None,
+        method_params: dict[str, Any] | None = None,
     ) -> MADMResult:
         weight_result = WeightCalculator(
             self._matrix,
@@ -706,6 +780,7 @@ class MADMRanker:
             method,
             weights=weight_result.weights,
             weight_method=weight_result.method,
+            method_params=method_params,
         )
 
     def rank_with_weight_method_as_dict(
@@ -714,11 +789,13 @@ class MADMRanker:
         *,
         weight_method: str | WeightMethod,
         user_weights: Sequence[float] | npt.NDArray[np.float64] | None = None,
+        method_params: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         return self.rank_with_weight_method(
             method,
             weight_method=weight_method,
             user_weights=user_weights,
+            method_params=method_params,
         ).to_dict()
 
     def rank_all_methods(
@@ -728,6 +805,7 @@ class MADMRanker:
         weight_method: str | WeightMethod = WeightMethod.EQUAL,
         user_weights: Sequence[float] | npt.NDArray[np.float64] | None = None,
         continue_on_error: bool = True,
+        madm_params: dict[str, dict[str, Any]] | None = None,
     ) -> dict[MADMMethod, MADMResult]:
         if methods is None:
             selected_methods = list(MADMMethod)
@@ -743,20 +821,22 @@ class MADMRanker:
             user_weights=user_weights,
         )
 
-        results: dict[MADMMethod, MADMResult] = {}
-
+        params_by_method = madm_params or {}
+        output: dict[MADMMethod, MADMResult] = {}
         for method in selected_methods:
             try:
-                results[method] = self.rank(
+                key = method.value
+                method_params = params_by_method.get(key) or params_by_method.get(method.name.lower())
+                output[method] = self.rank(
                     method,
                     weights=weight_result.weights,
                     weight_method=weight_result.method,
+                    method_params=method_params,
                 )
             except Exception:
                 if not continue_on_error:
                     raise
-
-        return results
+        return output
 
     def rank_all_methods_as_dict(
         self,
@@ -765,47 +845,16 @@ class MADMRanker:
         weight_method: str | WeightMethod = WeightMethod.EQUAL,
         user_weights: Sequence[float] | npt.NDArray[np.float64] | None = None,
         continue_on_error: bool = True,
+        madm_params: dict[str, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        if methods is None:
-            selected_methods = list(MADMMethod)
-        else:
-            selected_methods = [self._parse_madm_method(method) for method in methods]
-
-        weight_result = WeightCalculator(
-            self._matrix,
-            dimensions=self._dimensions,
-            epsilon=self._epsilon,
-        ).compute(
-            weight_method,
+        results = self.rank_all_methods(
+            methods=methods,
+            weight_method=weight_method,
             user_weights=user_weights,
+            continue_on_error=continue_on_error,
+            madm_params=madm_params,
         )
-
-        output: dict[str, Any] = {
-            "weighting": weight_result.to_dict(),
-            "matrix_orientation": self._matrix_orientation.value,
-            "methods": {},
-            "errors": {},
-        }
-
-        for method in selected_methods:
-            try:
-                result = self.rank(
-                    method,
-                    weights=weight_result.weights,
-                    weight_method=weight_result.method,
-                )
-                output["methods"][method.value] = result.to_dict()
-
-            except Exception as exc:
-                if not continue_on_error:
-                    raise
-
-                output["errors"][method.value] = {
-                    "error_type": type(exc).__name__,
-                    "message": str(exc),
-                }
-
-        return output
+        return {method.value: result.to_dict() for method, result in results.items()}
 
     def rank_all_weight_methods_as_dict(
         self,

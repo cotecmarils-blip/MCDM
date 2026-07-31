@@ -374,6 +374,12 @@ function SimulacionesPanel({ proyectoId, canWrite = true }) {
       direcciones: calcConfig.direcciones || {},
       metodo_pesos: calcConfig.metodo_pesos,
       metodo_madm: calcConfig.metodo_madm,
+      metodos_madm: (
+        Array.isArray(calcConfig.metodos_madm) && calcConfig.metodos_madm.length
+          ? calcConfig.metodos_madm
+          : [calcConfig.metodo_madm || 'topsis']
+      ),
+      madm_params: calcConfig.madm_params || {},
     };
     const epsilonCheck = parseParetoEpsilonInput(calcConfig.pareto_epsilon);
     if (epsilonCheck.ok) {
@@ -442,7 +448,10 @@ function SimulacionesPanel({ proyectoId, canWrite = true }) {
           return false;
         }
       }
-      if (!calcConfig.metodo_madm) {
+      if (!(
+        (Array.isArray(calcConfig.metodos_madm) && calcConfig.metodos_madm.length)
+        || calcConfig.metodo_madm
+      )) {
         setStepError('Seleccione un método MADM de ranking.');
         return false;
       }

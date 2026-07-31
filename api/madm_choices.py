@@ -52,14 +52,56 @@ MADM_METHODS = [
     {'value': 'topsis', 'label': 'TOPSIS'},
     {'value': 'wsm', 'label': 'WSM (suma ponderada)'},
     {'value': 'moora', 'label': 'MOORA'},
-    {'value': 'vikor', 'label': 'VIKOR'},
+    {
+        'value': 'vikor',
+        'label': 'VIKOR',
+        'params': [
+            {
+                'key': 'v',
+                'label': 'v (estrategia grupo)',
+                'min': 0,
+                'max': 1,
+                'step': 0.05,
+                'default': 0.5,
+                'help': 'Peso de la utilidad de grupo vs arrepentimiento individual (0–1).',
+            },
+        ],
+    },
     {'value': 'copras', 'label': 'COPRAS'},
     {'value': 'aras', 'label': 'ARAS'},
-    {'value': 'codas', 'label': 'CODAS'},
+    {
+        'value': 'codas',
+        'label': 'CODAS',
+        'params': [
+            {
+                'key': 'tau',
+                'label': 'τ (umbral relativo)',
+                'min': 0,
+                'max': 1,
+                'step': 0.01,
+                'default': 0.02,
+                'help': 'Umbral de la función ψ en la evaluación relativa (típicamente 0.01–0.05).',
+            },
+        ],
+    },
     {'value': 'edas', 'label': 'EDAS'},
     {'value': 'mabac', 'label': 'MABAC'},
     {'value': 'marcos', 'label': 'MARCOS'},
-    {'value': 'waspas', 'label': 'WASPAS'},
+    {
+        'value': 'waspas',
+        'label': 'WASPAS',
+        'params': [
+            {
+                'key': 'l',
+                'label': 'λ (WSM vs WPM)',
+                'min': 0,
+                'max': 1,
+                'step': 0.05,
+                'default': 0.5,
+                'help': 'Combina suma ponderada (λ) y producto ponderado (1−λ).',
+            },
+        ],
+    },
     {'value': 'wpm', 'label': 'WPM'},
 ]
 
@@ -103,6 +145,12 @@ def simulacion_opciones_payload(proyecto) -> dict:
             'dimensiones_normalizar': [d['nombre'] for d in dimensiones],
             'metodo_pesos': 'equal_weights',
             'metodo_madm': 'topsis',
+            'metodos_madm': ['topsis'],
+            'madm_params': {
+                'vikor': {'v': 0.5},
+                'waspas': {'l': 0.5},
+                'codas': {'tau': 0.02},
+            },
             'alternativa_ids': [item['id'] for item in alternativas_activas],
         },
     }

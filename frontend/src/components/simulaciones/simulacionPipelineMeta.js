@@ -61,7 +61,13 @@ export function getUnlockedStepIds(config, dimCount = 0) {
     }
   }
 
-  if (unlocked.includes('pesos') && config.metodo_madm) {
+  if (
+    unlocked.includes('pesos')
+    && (
+      config.metodo_madm
+      || (Array.isArray(config.metodos_madm) && config.metodos_madm.length)
+    )
+  ) {
     unlocked.push('madm');
   }
 

@@ -3,6 +3,7 @@ import { validatePesosDimensionesPercent } from '../../utils/pesoUtils';
 import MetodoInfoDropdown from './MetodoInfoDropdown';
 import ParetoEpsilonField from './ParetoEpsilonField';
 import { parseParetoEpsilonInput } from './paretoEpsilonUtils';
+import MadmMethodPicker from './MadmMethodPicker';
 import { NORMALIZATION_METHOD_DOCS, WEIGHT_METHOD_DOCS } from './simulacionMethodDocs';
 
 const PESO_INPUT_CLASS =
@@ -275,21 +276,30 @@ function SimulacionConfigPanel({ opcionesMeta, config, onChange, disabled }) {
       )}
 
       <div>
-        <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-1">
-          Método MADM de ranking
+        <label className="text-xs font-semibold text-gray-600 dark:text-gray-300 block mb-2">
+          Métodos MADM de ranking
         </label>
-        <select
-          value={config.metodo_madm || 'topsis'}
+        <MadmMethodPicker
+          methods={madmMethods}
+          selected={
+            Array.isArray(config.metodos_madm) && config.metodos_madm.length
+              ? config.metodos_madm
+              : [config.metodo_madm || 'topsis']
+          }
+          primary={config.metodo_madm || 'topsis'}
+          madmParams={config.madm_params || {}}
           disabled={disabled}
-          onChange={(e) => onChange({ ...config, metodo_madm: e.target.value })}
-          className="form-select w-full max-w-md text-sm"
-        >
-          {madmMethods.map((m) => (
-            <option key={m.value} value={m.value}>
-              {m.label}
-            </option>
-          ))}
-        </select>
+          layout="stack"
+          onChangeSelected={(metodos_madm) => onChange({
+            ...config,
+            metodos_madm,
+            metodo_madm: metodos_madm.includes(config.metodo_madm)
+              ? config.metodo_madm
+              : metodos_madm[0],
+          })}
+          onChangePrimary={(metodo_madm) => onChange({ ...config, metodo_madm })}
+          onChangeParams={(madm_params) => onChange({ ...config, madm_params })}
+        />
       </div>
     </div>
   );

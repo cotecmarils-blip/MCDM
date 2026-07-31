@@ -34,7 +34,7 @@ export const WIZARD_STEPS = [
   {
     id: 'madm',
     title: 'Ranking',
-    subtitle: 'Método MADM final (por defecto: TOPSIS)',
+    subtitle: 'Uno o varios métodos MADM (puede comparar varios a la vez)',
   },
   {
     id: 'resumen',
@@ -87,6 +87,16 @@ export function buildPreviewPayload(calcConfig, allDimensiones = []) {
   if (calcConfig.metodo_madm) {
     payload.metodo_madm = calcConfig.metodo_madm;
   }
+  const metodos = Array.isArray(calcConfig.metodos_madm) && calcConfig.metodos_madm.length
+    ? calcConfig.metodos_madm
+    : (calcConfig.metodo_madm ? [calcConfig.metodo_madm] : []);
+  if (metodos.length) {
+    payload.metodos_madm = metodos;
+    if (!payload.metodo_madm) payload.metodo_madm = metodos[0];
+  }
+  if (calcConfig.madm_params && typeof calcConfig.madm_params === 'object') {
+    payload.madm_params = calcConfig.madm_params;
+  }
   if (calcConfig.metodo_pesos === 'user_defined_weights') {
     payload.pesos_usuario = activas.map((dim) => {
       const idx = (allDimensiones || []).findIndex((d) => d.omoe_id === dim.omoe_id);
@@ -115,6 +125,12 @@ export function createEmptyCalcConfig(dimensiones = [], defaults = {}) {
     direcciones: dirs,
     metodo_pesos: defaults.metodo_pesos || 'equal_weights',
     metodo_madm: defaults.metodo_madm || 'topsis',
+    metodos_madm: defaults.metodos_madm || [defaults.metodo_madm || 'topsis'],
+    madm_params: defaults.madm_params || {
+      vikor: { v: 0.5 },
+      waspas: { l: 0.5 },
+      codas: { tau: 0.02 },
+    },
     pesos_usuario: dimensiones.map(() => ''),
     alternativa_ids: defaults.alternativa_ids || [],
   };
@@ -190,11 +206,15 @@ export function validateWizardStep(stepId, config, opcionesMeta) {
       }
       return { ok: true };
 
-    case 'madm':
-      if (!config?.metodo_madm) {
-        return { ok: false, message: 'Seleccione un método MADM de ranking.' };
+    case 'madm': {
+      const selected = Array.isArray(config?.metodos_madm) && config.metodos_madm.length
+        ? config.metodos_madm
+        : (config?.metodo_madm ? [config.metodo_madm] : []);
+      if (!selected.length) {
+        return { ok: false, message: 'Seleccione al menos un método MADM de ranking.' };
       }
       return { ok: true };
+    }
 
     case 'resumen':
       for (const step of WIZARD_STEPS.slice(0, -1)) {
@@ -217,9 +237,15 @@ export function buildConfigSummary(config, opcionesMeta) {
   const pesoLabel = opcionesMeta?.weight_methods?.find(
     (m) => m.value === config.metodo_pesos,
   )?.label;
-  const madmLabel = opcionesMeta?.madm_methods?.find(
-    (m) => m.value === config.metodo_madm,
-  )?.label;
+  const selectedMadm = Array.isArray(config.metodos_madm) && config.metodos_madm.length
+    ? config.metodos_madm
+    : (config.metodo_madm ? [config.metodo_madm] : []);
+  const madmLabels = selectedMadm.map(
+    (v) => opcionesMeta?.madm_methods?.find((m) => m.value === v)?.label || v.toUpperCase(),
+  );
+  const madmLabel = madmLabels.length
+    ? `${madmLabels.join(', ')}${config.metodo_madm && selectedMadm.length > 1 ? ` (primario: ${(opcionesMeta?.madm_methods?.find((m) => m.value === config.metodo_madm)?.label) || config.metodo_madm})` : ''}`
+    : null;
 
   return [
     { label: 'Nombre', value: config.nombre_calculo?.trim() || '—' },

@@ -8,6 +8,7 @@ import SimulacionProcesoPreview from './SimulacionProcesoPreview';
 import SimulacionWizardStepper from './SimulacionWizardStepper';
 import ParetoEpsilonField from './ParetoEpsilonField';
 import { parseParetoEpsilonInput } from './paretoEpsilonUtils';
+import MadmMethodPicker from './MadmMethodPicker';
 import {
   WIZARD_STEPS,
   WIZARD_PIPELINE_FOCUS,
@@ -534,33 +535,26 @@ function SimulacionWizard({
 
             {currentStep.id === 'madm' && (
               <div className="space-y-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Por defecto se usa TOPSIS (recomendado). El ranking preliminar se calcula a la
-                  derecha al elegir el método.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {madmMethods.map((m) => (
-                    <label
-                      key={m.value}
-                      className={`flex items-start gap-3 p-3 rounded-lg border text-sm cursor-pointer transition-colors ${
-                        calcConfig.metodo_madm === m.value
-                          ? 'border-navy-500 bg-navy-500/5'
-                          : 'border-gray-200 dark:border-gray-700/60 hover:border-navy-400/40'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="metodo_madm"
-                        value={m.value}
-                        checked={calcConfig.metodo_madm === m.value}
-                        disabled={loading}
-                        onChange={() => onChange({ ...calcConfig, metodo_madm: m.value })}
-                        className="mt-1"
-                      />
-                      <span className="font-medium">{m.label}</span>
-                    </label>
-                  ))}
-                </div>
+                <MadmMethodPicker
+                  methods={madmMethods}
+                  selected={
+                    Array.isArray(calcConfig.metodos_madm) && calcConfig.metodos_madm.length
+                      ? calcConfig.metodos_madm
+                      : [calcConfig.metodo_madm || 'topsis']
+                  }
+                  primary={calcConfig.metodo_madm || 'topsis'}
+                  madmParams={calcConfig.madm_params || {}}
+                  disabled={loading}
+                  onChangeSelected={(metodos_madm) => onChange({
+                    ...calcConfig,
+                    metodos_madm,
+                    metodo_madm: metodos_madm.includes(calcConfig.metodo_madm)
+                      ? calcConfig.metodo_madm
+                      : metodos_madm[0],
+                  })}
+                  onChangePrimary={(metodo_madm) => onChange({ ...calcConfig, metodo_madm })}
+                  onChangeParams={(madm_params) => onChange({ ...calcConfig, madm_params })}
+                />
               </div>
             )}
 

@@ -1678,6 +1678,8 @@ def calcular_simulacion(
         'normalizacion': pipeline_result.get('normalizacion'),
         'pesos': pipeline_result.get('pesos'),
         'madm': pipeline_result.get('madm'),
+        'madm_por_metodo': pipeline_result.get('madm_por_metodo'),
+        'madm_errores': pipeline_result.get('madm_errores'),
         'matriz_original': matrix,
         'pasos': preview.get('pasos', []),
         'debug_logs': debug_logs,
@@ -1720,6 +1722,16 @@ def resumen_opciones_calculo(opciones: dict[str, Any] | None) -> str:
     if opciones.get('solo_matriz'):
         return 'Comparación solo con matriz de utilidades'
     madm = _MADM_LABELS.get(opciones.get('metodo_madm', ''), opciones.get('metodo_madm', 'MADM'))
+    metodos = opciones.get('metodos_madm') or []
+    if isinstance(metodos, list) and len(metodos) > 1:
+        primary = str(opciones.get('metodo_madm') or '').strip().lower()
+        extras = [
+            _MADM_LABELS.get(m, str(m).upper())
+            for m in metodos
+            if str(m).strip().lower() != primary
+        ]
+        if extras:
+            madm = f'{madm} (+{len(extras)}: {", ".join(extras)})'
     pesos = _PESOS_LABELS.get(
         opciones.get('metodo_pesos', ''),
         opciones.get('metodo_pesos', 'Pesos'),

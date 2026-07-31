@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 
 from decimal import Decimal
 
-from .madm_choices import rama_to_direction
+from .madm_choices import MADM_METHODS, rama_to_direction
 from .madm_ranker import MADMRanker, MatrixOrientation, WeightCalculator
 from .matrix_normalizer import NonDominatedNormalizer
 from .pareto_solver import DEFAULT_PARETO_EPSILON, ParetoSolver
@@ -124,6 +124,48 @@ def _parse_pesos_usuario_percent(raw, n_dims: int) -> list[float]:
     return [float(p) for p in pesos]
 
 
+def _parse_madm_params(raw: Any) -> dict[str, dict[str, float]]:
+    """Normaliza parámetros por método: vikor.v, waspas.l, codas.tau."""
+    if not isinstance(raw, dict):
+        return {}
+    out: dict[str, dict[str, float]] = {}
+    for key, val in raw.items():
+        method = str(key).strip().lower()
+        if not isinstance(val, dict):
+            continue
+        cleaned: dict[str, float] = {}
+        if method == 'vikor' and val.get('v') is not None:
+            cleaned['v'] = float(val['v'])
+        if method == 'waspas':
+            if val.get('l') is not None:
+                cleaned['l'] = float(val['l'])
+            elif val.get('lambda') is not None:
+                cleaned['l'] = float(val['lambda'])
+        if method == 'codas' and val.get('tau') is not None:
+            cleaned['tau'] = float(val['tau'])
+        if cleaned:
+            out[method] = cleaned
+    return out
+
+
+def _parse_metodos_madm(opts: dict[str, Any]) -> list[str]:
+    """Lista de métodos (orden preservado). Retrocompatible con metodo_madm único."""
+    valid = {m['value'] for m in MADM_METHODS}
+    raw_list = opts.get('metodos_madm')
+    selected: list[str] = []
+    if isinstance(raw_list, (list, tuple)):
+        for item in raw_list:
+            key = str(item or '').strip().lower()
+            if key in valid and key not in selected:
+                selected.append(key)
+    primary = str(opts.get('metodo_madm') or '').strip().lower()
+    if primary in valid and primary not in selected:
+        selected.insert(0, primary)
+    if not selected:
+        selected = ['topsis']
+    return selected
+
+
 def _parse_opciones(
     opciones: dict[str, Any] | None,
     dimension_names: list[str],
@@ -143,7 +185,11 @@ def _parse_opciones(
     metodo_pesos = (opts.get('metodo_pesos') or '').strip()
     if not metodo_pesos:
         raise ValidationError('Debe seleccionar un método de cálculo de pesos.')
-    metodo_madm = (opts.get('metodo_madm') or 'topsis').strip()
+    metodos_madm = _parse_metodos_madm(opts)
+    metodo_madm = str(opts.get('metodo_madm') or metodos_madm[0]).strip().lower()
+    if metodo_madm not in metodos_madm:
+        metodo_madm = metodos_madm[0]
+    madm_params = _parse_madm_params(opts.get('madm_params'))
     directions = (
         resolve_directions(dimensiones_meta, opts)
         if dimensiones_meta
@@ -165,6 +211,8 @@ def _parse_opciones(
         'normalizacion_metodo': metodo_norm,
         'metodo_pesos': metodo_pesos,
         'metodo_madm': metodo_madm,
+        'metodos_madm': metodos_madm,
+        'madm_params': madm_params,
         'pesos_usuario': pesos_usuario,
         'pareto_epsilon': pareto_epsilon,
     }
@@ -322,15 +370,35 @@ def run_madm_pipeline(
     )
 
     try:
-        madm_result = ranker.rank_with_weight_method(
-            parsed['metodo_madm'],
-            weight_method=parsed['metodo_pesos'],
-            user_weights=user_weights,
-        )
+        madm_by_method: dict[str, Any] = {}
+        errors_by_method: dict[str, str] = {}
+        madm_params = parsed.get('madm_params') or {}
+        for method_key in parsed['metodos_madm']:
+            try:
+                result = ranker.rank_with_weight_method(
+                    method_key,
+                    weight_method=parsed['metodo_pesos'],
+                    user_weights=user_weights,
+                    method_params=madm_params.get(method_key),
+                )
+                madm_by_method[method_key] = result.to_dict()
+            except Exception as exc:  # noqa: BLE001 — reportar por método
+                errors_by_method[method_key] = str(exc)
+
+        primary = parsed['metodo_madm']
+        if primary not in madm_by_method:
+            # Si el primario falló, usar el primero disponible.
+            if not madm_by_method:
+                detail = '; '.join(f'{k}: {v}' for k, v in errors_by_method.items()) or 'sin detalle'
+                raise ValidationError(f'Error en método MADM: {detail}')
+            primary = next(iter(madm_by_method))
+            parsed['metodo_madm'] = primary
+
+        madm_dict = madm_by_method[primary]
+    except ValidationError:
+        raise
     except Exception as exc:
         raise ValidationError(f'Error en método MADM: {exc}') from exc
-
-    madm_dict = madm_result.to_dict()
 
     ranking_by_alt_id: dict[str, int] = {}
     for alt_name, rank in madm_dict.get('ranking_by_alternative', {}).items():
@@ -346,6 +414,8 @@ def run_madm_pipeline(
             'weights_by_dimension': madm_dict.get('weights_by_dimension'),
         },
         'madm': madm_dict,
+        'madm_por_metodo': madm_by_method,
+        'madm_errores': errors_by_method,
         'ranking_by_alternative': ranking_by_alt_id,
         'best_alternative': madm_dict.get('best_alternative'),
     }
@@ -557,9 +627,11 @@ def preview_madm_pipeline(
                     error=str(exc),
                 ))
 
-    metodo_madm = (opts.get('metodo_madm') or '').strip()
+    metodos_madm = _parse_metodos_madm(opts)
+    metodo_madm = (opts.get('metodo_madm') or (metodos_madm[0] if metodos_madm else '')).strip()
+    madm_params = _parse_madm_params(opts.get('madm_params'))
     if (
-        metodo_madm
+        metodos_madm
         and norm_matrix is not None
         and norm_alts is not None
         and metodo_pesos
@@ -589,16 +661,23 @@ def preview_madm_pipeline(
                     directions=pareto_directions,
                     matrix_orientation=_matrix_orientation_for_method(norm_method),
                 )
-                madm_result = ranker.rank_with_weight_method(
-                    metodo_madm,
-                    weight_method=metodo_pesos,
-                    user_weights=(
-                        opts.get('pesos_usuario')
-                        if metodo_pesos == 'user_defined_weights'
-                        else None
-                    ),
+                user_w = (
+                    opts.get('pesos_usuario')
+                    if metodo_pesos == 'user_defined_weights'
+                    else None
                 )
-                madm_dict = madm_result.to_dict()
+                madm_by_method: dict[str, Any] = {}
+                for method_key in metodos_madm:
+                    result = ranker.rank_with_weight_method(
+                        method_key,
+                        weight_method=metodo_pesos,
+                        user_weights=user_w,
+                        method_params=madm_params.get(method_key),
+                    )
+                    madm_by_method[method_key] = result.to_dict()
+
+                primary = metodo_madm if metodo_madm in madm_by_method else metodos_madm[0]
+                madm_dict = madm_by_method[primary]
                 ranking_rows = []
                 scores = madm_dict.get('scores_by_alternative') or {}
                 ranking = madm_dict.get('ranking_by_alternative') or {}
@@ -609,18 +688,46 @@ def preview_madm_pipeline(
                         'ranking': int(ranking.get(alt_name, 0)),
                     })
                 ranking_rows.sort(key=lambda r: r['ranking'] if r['ranking'] else 9999)
+
+                comparacion = []
+                for alt_name in norm_alts:
+                    row = {'alternativa': alt_name}
+                    for mk, md in madm_by_method.items():
+                        row[f'rango_{mk}'] = int((md.get('ranking_by_alternative') or {}).get(alt_name, 0))
+                        row[f'score_{mk}'] = round(
+                            float((md.get('scores_by_alternative') or {}).get(alt_name, 0)),
+                            4,
+                        )
+                    comparacion.append(row)
+
+                labels = ', '.join(m.upper() for m in metodos_madm)
                 pasos.append(_paso_meta(
                     'madm',
                     5,
                     id='madm',
                     estado='completo',
-                    titulo=f'Ranking {metodo_madm.upper()}',
-                    descripcion='Orden preliminar según configuración actual (notebook 02).',
-                    metodo=metodo_madm,
+                    titulo=f'Ranking MADM ({labels})',
+                    descripcion=(
+                        'Orden preliminar según configuración actual (notebook 02). '
+                        f'Primario: {primary.upper()}.'
+                    ),
+                    metodo=primary,
+                    metodos=metodos_madm,
+                    madm_params=madm_params,
                     mejor_alternativa=madm_dict.get('best_alternative'),
-                    filas=ranking_rows,
+                    ranking=ranking_rows,
+                    madm_por_metodo={
+                        k: {
+                            'best_alternative': v.get('best_alternative'),
+                            'ranking_by_alternative': v.get('ranking_by_alternative'),
+                            'scores_by_alternative': v.get('scores_by_alternative'),
+                            'params': v.get('params'),
+                        }
+                        for k, v in madm_by_method.items()
+                    },
+                    comparacion_metodos=comparacion,
                 ))
-            except (ValidationError, ValueError) as exc:
+            except Exception as exc:  # noqa: BLE001
                 pasos.append(_paso_meta(
                     'madm',
                     5,
@@ -628,15 +735,6 @@ def preview_madm_pipeline(
                     estado='error',
                     titulo='Ranking MADM',
                     error=str(exc),
-                ))
-            except Exception as exc:
-                pasos.append(_paso_meta(
-                    'madm',
-                    5,
-                    id='madm',
-                    estado='error',
-                    titulo='Ranking MADM',
-                    error=f'Error numérico en {metodo_madm.upper()}: {exc}',
                 ))
 
     return {'pasos': pasos}
