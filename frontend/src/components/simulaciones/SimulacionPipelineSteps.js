@@ -14,8 +14,8 @@ export function NotebookBadge({ notebook }) {
     );
   }
   return (
-    <span className="pipeline-badge" title={`Notebook ${notebook}`}>
-      Nb {notebook}
+    <span className="pipeline-badge" title={`Paso ${notebook} del pipeline`}>
+      Paso {notebook}
     </span>
   );
 }

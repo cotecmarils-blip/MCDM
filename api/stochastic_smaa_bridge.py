@@ -1,4 +1,4 @@
-"""Puente MDCM: resultado de simulación → motor SMAA (guía Joan 03_2)."""
+"""Puente MDCM: resultado de simulación → motor SMAA."""
 from __future__ import annotations
 
 from typing import Any, Sequence
@@ -107,7 +107,7 @@ def _normalize_weights(weights: Sequence[float], n: int) -> np.ndarray:
 
 
 def kendall_tau_distribution(ranks: np.ndarray, nominal_ranks: np.ndarray) -> dict[str, Any]:
-    """τ de Kendall vs ranking nominal (notebook Joan, SensitivityPlots.kendall_distribution)."""
+    """τ de Kendall vs ranking nominal."""
     m = ranks.shape[1]
     if m < 2:
         return {'mean': 1.0, 'values_sample': [1.0], 'histogram': {'bins': [], 'counts': []}}
@@ -361,7 +361,7 @@ def serialize_simulation_result(
         'tipo': 'sensibilidad_estocastica_smaa',
         'nivel': nivel,
         'guia': (
-            'Joan 03_2 — SMAA / sensibilidad y robustez '
+            'SMAA / sensibilidad y robustez '
             f'({"meso–macro" if nivel == "meso_macro" else "enfoque macro"})'
         ),
         'aggregation': aggregation,
@@ -443,7 +443,7 @@ def run_smaa_macro(
     surface_resolution: int = 24,
     uniform_dirichlet: bool = False,
 ) -> dict[str, Any]:
-    """Ejecuta escenario exclusivamente macro del notebook Joan."""
+    """Ejecuta escenario exclusivamente macro."""
     alts = tuple(str(a) for a in alternatives)
     crit = tuple(str(c) for c in criteria)
     w = _normalize_weights(nominal_weights, len(crit))
@@ -523,7 +523,7 @@ def run_smaa_meso_macro(
     context_labels: list[str] | None = None,
     uniform_dirichlet: bool = False,
 ) -> dict[str, Any]:
-    """Escenario meso–macro Joan: OMOE = λ·z contextual; OMOC/OMOR fijos."""
+    """Escenario meso–macro: OMOE = λ·z contextual; OMOC/OMOR fijos."""
     alts = tuple(str(a) for a in alternatives)
     crit = ('OMOC', 'OMOE', 'OMOR')
     w_macro = _normalize_weights(nominal_macro_weights, 3)

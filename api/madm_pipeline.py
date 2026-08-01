@@ -495,7 +495,7 @@ def preview_madm_pipeline(
                 id='pareto',
                 estado='completo',
                 titulo='Filtro Pareto',
-                descripcion='Solo alternativas no dominadas (notebook 01).',
+                descripcion='Solo alternativas no dominadas.',
                 activo=True,
                 alternativas=filtered_alts,
                 excluidas=pareto_result.dominated_alternatives,
@@ -552,7 +552,7 @@ def preview_madm_pipeline(
                 id='normalizacion',
                 estado='completo',
                 titulo='Matriz normalizada',
-                descripcion=f'Método: {norm_method} (notebook 01).',
+                descripcion=f'Método: {norm_method}.',
                 metodo=norm_method,
                 dimensiones_normalizadas=norm_result.normalized_dimensions,
                 dimensiones_preservadas=norm_result.preserved_dimensions,
@@ -611,7 +611,7 @@ def preview_madm_pipeline(
                     id='pesos',
                     estado='completo',
                     titulo='Pesos por dimensión',
-                    descripcion=f'Método: {metodo_pesos} (notebook 02).',
+                    descripcion=f'Método: {metodo_pesos}.',
                     metodo=metodo_pesos,
                     pesos=[round(w, 6) for w in weights_list],
                     pesos_porcentaje=pesos_pct,
@@ -708,7 +708,7 @@ def preview_madm_pipeline(
                     estado='completo',
                     titulo=f'Ranking MADM ({labels})',
                     descripcion=(
-                        'Orden preliminar según configuración actual (notebook 02). '
+                        'Orden preliminar según configuración actual. '
                         f'Primario: {primary.upper()}.'
                     ),
                     metodo=primary,

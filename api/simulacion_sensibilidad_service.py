@@ -594,7 +594,7 @@ def _alt_dimension_map(resultado: dict[str, Any]) -> dict[str, dict[str, dict[st
 def extract_meso_macro_inputs(
     resultado: dict[str, Any],
 ) -> tuple[dict[str, Any] | None, str | None]:
-    """Extrae inputs Joan meso–macro desde un resultado de simulación.
+    """Extrae inputs meso–macro desde un resultado de simulación.
 
     Requiere dimensiones omoc, omoe y omor, y al menos dos valores
     contextuales OMOE en ``escenarios_resumen.por_escenario`` (modo selección).
@@ -604,7 +604,7 @@ def extract_meso_macro_inputs(
     for needed in ('omoc', 'omoe', 'omor'):
         if needed not in ramas:
             return None, (
-                'El escenario meso–macro de la guía Joan requiere dimensiones '
+                'El escenario meso–macro requiere dimensiones '
                 'OMOC, OMOE y OMOR (por rama_evaluacion). Falta: '
                 f'{needed.upper()}.'
             )
@@ -628,13 +628,11 @@ def extract_meso_macro_inputs(
     if len(context_rows) < 2:
         return None, (
             'Para meso–macro hacen falta al menos dos escenarios OMOE con valor '
-            'dimensional por contexto (z₁, z₂). En el PDF de Joan esos valores '
-            'son inputs fijos por alternativa. En MDCM hoy solo aparecen en '
+            'dimensional por contexto (z₁, z₂). En el ejemplo de referencia esos '
+            'valores son inputs fijos por alternativa. En MDCM hoy solo aparecen en '
             'cálculos con agregación por selección de escenario '
             '(mínimo/máximo-mejor o peor caso), en '
-            'dimensiones[].escenarios_resumen.por_escenario. '
-            'Pendiente validar con Joan si, en modo compensatorio, debemos '
-            'recalcular el árbol OMOE una vez por escenario al vuelo.'
+            'dimensiones[].escenarios_resumen.por_escenario.'
         )
 
     alternatives: list[str] = []
@@ -753,7 +751,7 @@ def build_stochastic_sensibilidad_from_resultado(
     sampling_method: str | None = 'mc',
     admissibility_threshold: float | None = None,
 ) -> dict[str, Any]:
-    """Sensibilidad estocástica SMAA (guía Joan / notebook 03_2).
+    """Sensibilidad estocástica SMAA.
 
     ``nivel``:
       - ``macro``: matriz dimensional fija (pipeline normalizado).
@@ -793,7 +791,7 @@ def build_stochastic_sensibilidad_from_resultado(
                     'ok': False,
                     'mensaje': msg or 'No hay datos suficientes para meso–macro.',
                     'nivel': 'meso_macro',
-                    'requires_joan_clarification': True,
+                    'requires_clarification': True,
                 }
             payload = run_smaa_meso_macro(
                 alternatives=inputs['alternatives'],

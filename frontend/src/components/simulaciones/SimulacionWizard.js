@@ -369,7 +369,7 @@ function SimulacionWizard({
                     onClick={() => onChange({ ...calcConfig, aplicar_pareto: true })}
                     icon="◈"
                     title="Sí, aplicar Pareto"
-                    description="Conserva solo alternativas no dominadas (notebook 01)."
+                    description="Conserva solo alternativas no dominadas."
                   />
                   <ChoiceCard
                     selected={calcConfig.aplicar_pareto === false}

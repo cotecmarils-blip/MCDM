@@ -1848,7 +1848,11 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
 
         resultado = body.get('resultado')
         historial_id = body.get('historial_id')
-        ejemplo_joan = bool(body.get('ejemplo_joan') or body.get('demo_joan'))
+        ejemplo_joan = bool(
+            body.get('ejemplo_referencia')
+            or body.get('ejemplo_joan')
+            or body.get('demo_joan')
+        )
         if historial_id and not resultado and not ejemplo_joan:
             try:
                 historial = get_simulacion_historial(proyecto, int(historial_id))
@@ -1900,7 +1904,7 @@ class ProyectoViewSet(AuthScopedViewSetMixin, viewsets.ModelViewSet):
         if accion in {'estocastica', 'estocástica', 'stochastic'}:
             try:
                 thr = body.get('admissibility_threshold', body.get('umbral_admisibilidad'))
-                if body.get('ejemplo_joan') or body.get('demo_joan'):
+                if body.get('ejemplo_referencia') or body.get('ejemplo_joan') or body.get('demo_joan'):
                     from .joan_smaa_demo import run_joan_guide_demo
 
                     payload = run_joan_guide_demo(

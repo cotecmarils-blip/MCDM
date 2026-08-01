@@ -1538,8 +1538,7 @@ def preview_simulacion(
                 'estado': 'bloqueado',
                 'titulo': 'Matriz de utilidades',
                 'descripcion': (
-                    'Agregación de utilidades por dimensión desde el árbol de criterios '
-                    '(paso previo al notebook 01).'
+                    'Agregación de utilidades por dimensión desde el árbol de criterios.'
                 ),
                 'notebook': 'app',
                 'error': (

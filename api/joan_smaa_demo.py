@@ -1,4 +1,4 @@
-"""Datos del ejemplo publicado en la guía Joan 03_2 (PDF/notebook)."""
+"""Datos del ejemplo de referencia SMAA (matriz A–F / OMOC·OMOE·OMOR)."""
 from __future__ import annotations
 
 from typing import Any
@@ -98,17 +98,18 @@ def run_joan_guide_demo(
             uniform_dirichlet=True,
         )
 
-    payload['ejemplo_joan'] = True
+    payload['ejemplo_referencia'] = True
+    payload['ejemplo_joan'] = True  # compatibilidad
     payload['metodo_madm'] = 'wsm'
-    payload['metodo_madm_label'] = 'WSM (aditiva / guía Joan)'
+    payload['metodo_madm_label'] = 'WSM (aditiva)'
     payload['guia'] = (
-        'Ejemplo numérico de la guía Joan 03_2 '
-        f'({"§14 meso–macro" if nivel_norm == "meso_macro" else "§13 macro"})'
+        'Ejemplo numérico de referencia '
+        f'({"meso–macro" if nivel_norm == "meso_macro" else "macro"})'
     )
     payload['descripcion'] = (
-        'Demo con la matriz y contextos del PDF/notebook 03_2 (alternativas A–F, '
-        'OMOC/OMOE/OMOR). Iteraciones acotadas para la web; metodología alineada '
-        'a la guía (Dirichlet casi uniforme, umbral admisibilidad 0.40, '
-        'agregación aditiva, normalización direccional).'
+        'Demo con matriz de referencia (alternativas A–F, OMOC/OMOE/OMOR). '
+        'Iteraciones acotadas para la web; metodología alineada a SMAA '
+        '(Dirichlet casi uniforme, umbral admisibilidad 0.40, agregación aditiva, '
+        'normalización direccional).'
     )
     return payload

@@ -1,6 +1,6 @@
-"""Motor SMAA / sensibilidad estocástica (guía Joan, notebooks 03_1 / 03_2).
+"""Motor SMAA / sensibilidad estocástica.
 
-Port de la lógica computacional del notebook, sin Matplotlib/display.
+Port de la lógica computacional, sin Matplotlib/display.
 """
 from __future__ import annotations
 
