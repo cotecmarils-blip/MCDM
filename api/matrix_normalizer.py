@@ -1,4 +1,4 @@
-"""Normalización de matriz de decisión (notebook 01)."""
+"""Normalización de matriz de decisión para el pipeline MADM."""
 
 from __future__ import annotations
 
@@ -407,23 +407,32 @@ class NonDominatedNormalizer:
         return normalized
 
     def _directional_vector(self) -> npt.NDArray[np.float64]:
-        x = self._pareto_matrix
-        norms = np.sqrt(np.sum(np.square(x), axis=0))
+        """Vectorial orientada a beneficio: costos se invierten antes de la norma.
 
-        normalized = np.zeros_like(x, dtype=np.float64)
+        Beneficio: rᵢⱼ = xᵢⱼ / ‖x·ⱼ‖₂
+        Costo:     rᵢⱼ = (1/xᵢⱼ) / ‖1/x·ⱼ‖₂
+        Así, en todas las columnas un valor mayor es mejor (alineado al motor SMAA).
+        """
+        x = self._pareto_matrix
+        transformed = np.zeros_like(x, dtype=np.float64)
 
         for j, direction in enumerate(self._directions):
-            if norms[j] <= self._epsilon:
-                normalized[:, j] = 0.0
+            column = x[:, j]
+            if direction == Direction.MAX:
+                transformed[:, j] = column
                 continue
 
-            vector_values = x[:, j] / norms[j]
+            if np.any(column <= self._epsilon):
+                raise ValueError(
+                    f"La normalización vectorial direccional del criterio de costo "
+                    f"'{self._dimensions[j]}' requiere valores estrictamente positivos."
+                )
+            transformed[:, j] = 1.0 / column
 
-            if direction == Direction.MAX:
-                normalized[:, j] = vector_values
-            else:
-                normalized[:, j] = 1.0 - vector_values
-
+        norms = np.sqrt(np.sum(np.square(transformed), axis=0))
+        normalized = np.zeros_like(transformed, dtype=np.float64)
+        valid = norms > self._epsilon
+        normalized[:, valid] = transformed[:, valid] / norms[valid]
         return normalized
 
     def _sum(self) -> npt.NDArray[np.float64]:

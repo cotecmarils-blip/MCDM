@@ -136,8 +136,22 @@ function MethodDocChart({ chartId }) {
       return <LineChart points={points} xLabel="xᵢⱼ" yLabel="rᵢⱼ (max)" />;
     }
     case 'vector':
+      return (
+        <BeforeAfterBars
+          before={[3, 4, 5]}
+          after={[0.424, 0.566, 0.707]}
+          title="Sin invertir costos (solo norma)"
+        />
+      );
     case 'directional_vector':
-      return <BeforeAfterBars before={[3, 4, 5]} after={[0.42, 0.57, 0.71]} title="Ejemplo columna" />;
+      // Columna de costo [2, 8, 4] → inverso [0.5, 0.125, 0.25] → norma ≈ 0.573
+      return (
+        <BeforeAfterBars
+          before={[2, 8, 4]}
+          after={[0.872, 0.218, 0.436]}
+          title="Costo: inverso y luego norma"
+        />
+      );
     case 'sum':
       return <BeforeAfterBars before={[2, 3, 5]} after={[0.2, 0.3, 0.5]} title="Beneficio: proporción a la suma" />;
     case 'equal_weights':

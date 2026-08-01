@@ -18,10 +18,12 @@ export const NORMALIZATION_METHOD_DOCS = {
   },
   vector: {
     title: 'Vectorial',
-    intro: 'Divide cada valor por la norma euclídea de su columna (sin invertir costos).',
+    intro:
+      'Divide cada valor por la norma euclídea de su columna. No transforma costos: '
+      'el sentido min/max lo aplica después el método MADM.',
     equations: [
       {
-        label: 'Fórmula',
+        label: 'Todos los criterios',
         text: 'rᵢⱼ = xᵢⱼ / √(Σᵢ xᵢⱼ²)',
       },
     ],
@@ -29,7 +31,9 @@ export const NORMALIZATION_METHOD_DOCS = {
   },
   directional_vector: {
     title: 'Vectorial direccional',
-    intro: 'Normalización vectorial con orientación: en costos se complementa a 1.',
+    intro:
+      'Primero orienta los costos a beneficio (inverso) y luego aplica la norma euclídea. '
+      'Tras normalizar, en todas las columnas un valor mayor es mejor.',
     equations: [
       {
         label: 'Beneficio (max)',
@@ -37,7 +41,7 @@ export const NORMALIZATION_METHOD_DOCS = {
       },
       {
         label: 'Costo (min)',
-        text: 'rᵢⱼ = 1 − xᵢⱼ / √(Σᵢ xᵢⱼ²)',
+        text: 'rᵢⱼ = (1/xᵢⱼ) / √(Σᵢ (1/xᵢⱼ)²)',
       },
     ],
     chart: 'directional_vector',

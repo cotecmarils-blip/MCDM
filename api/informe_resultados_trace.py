@@ -530,11 +530,11 @@ def add_normalization_trace(
                 new_page=False,
             )
 
-        elif method in ('vector', 'directional_vector'):
+        elif method == 'vector':
             norm = math.sqrt(sum(x * x for x in col))
             _add_eq_line(
                 doc,
-                'Fórmula base',
+                'Fórmula',
                 r'r_{ij}=\dfrac{x_{ij}}{\sqrt{\sum_i x_{ij}^{2}}}',
             )
             _add_eq_line(
@@ -545,22 +545,56 @@ def add_normalization_trace(
             rows = []
             for i, x in enumerate(col):
                 name = alt_names[i] if i < len(alt_names) else f'Alt {i + 1}'
-                base = (x / norm) if abs(norm) > 1e-12 else 0.0
-                if method == 'directional_vector' and _is_min(direction):
-                    r = 1.0 - base
-                    subst = (
-                        f'v = {_fmt_num(x)}/{_fmt_num(norm, 6)} = {_fmt_num(base, 6)}; '
-                        f'r = 1 − {_fmt_num(base, 6)} = {_fmt_num(r, 6)}'
-                    )
-                else:
-                    r = base
-                    subst = f'r = {_fmt_num(x)} / {_fmt_num(norm, 6)} = {_fmt_num(r, 6)}'
+                r = (x / norm) if abs(norm) > 1e-12 else 0.0
+                subst = f'r = {_fmt_num(x)} / {_fmt_num(norm, 6)} = {_fmt_num(r, 6)}'
                 rows.append([name, _fmt_num(x), subst, _fmt_num(r, 6)])
             _add_table(
                 doc,
                 ['Alternativa', 'xᵢⱼ', 'Sustitución', 'rᵢⱼ'],
                 rows,
                 title=f'Desarrollo vectorial — {dim}',
+                new_page=False,
+            )
+
+        elif method == 'directional_vector':
+            if _is_min(direction):
+                work = [1.0 / x if abs(x) > 1e-12 else 0.0 for x in col]
+                _add_eq_line(
+                    doc,
+                    'Fórmula (costo)',
+                    r'r_{ij}=\dfrac{1/x_{ij}}{\sqrt{\sum_i (1/x_{ij})^{2}}}',
+                )
+            else:
+                work = list(col)
+                _add_eq_line(
+                    doc,
+                    'Fórmula (beneficio)',
+                    r'r_{ij}=\dfrac{x_{ij}}{\sqrt{\sum_i x_{ij}^{2}}}',
+                )
+            norm = math.sqrt(sum(v * v for v in work))
+            _add_eq_line(
+                doc,
+                'Norma tras orientación',
+                rf'\sqrt{{\sum v^{{2}}}}={_fmt_num(norm, 6)}',
+            )
+            rows = []
+            for i, x in enumerate(col):
+                name = alt_names[i] if i < len(alt_names) else f'Alt {i + 1}'
+                v = work[i]
+                r = (v / norm) if abs(norm) > 1e-12 else 0.0
+                if _is_min(direction):
+                    subst = (
+                        f'v = 1/{_fmt_num(x)} = {_fmt_num(v, 6)}; '
+                        f'r = {_fmt_num(v, 6)}/{_fmt_num(norm, 6)} = {_fmt_num(r, 6)}'
+                    )
+                else:
+                    subst = f'r = {_fmt_num(x)} / {_fmt_num(norm, 6)} = {_fmt_num(r, 6)}'
+                rows.append([name, _fmt_num(x), subst, _fmt_num(r, 6)])
+            _add_table(
+                doc,
+                ['Alternativa', 'xᵢⱼ', 'Sustitución', 'rᵢⱼ'],
+                rows,
+                title=f'Desarrollo vectorial direccional — {dim}',
                 new_page=False,
             )
 

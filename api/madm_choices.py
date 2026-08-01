@@ -11,12 +11,12 @@ NORMALIZATION_METHODS = [
     {
         'value': 'vector',
         'label': 'Vectorial',
-        'description': 'Divide por la norma euclídea de cada columna.',
+        'description': 'Divide por la norma euclídea (sin transformar costos).',
     },
     {
         'value': 'directional_vector',
         'label': 'Vectorial direccional',
-        'description': 'Vectorial orientada: mayor valor = mejor en todos los criterios.',
+        'description': 'Invierte costos y luego aplica la norma euclídea (mayor = mejor).',
     },
     {
         'value': 'sum',

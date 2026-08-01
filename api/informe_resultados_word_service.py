@@ -60,17 +60,23 @@ NORMALIZATION_DOCS: dict[str, dict[str, Any]] = {
     },
     'vector': {
         'title': 'Vectorial',
-        'intro': 'Divide cada valor por la norma euclídea de su columna.',
+        'intro': (
+            'Divide cada valor por la norma euclídea de su columna. '
+            'No transforma costos; el sentido lo aplica después el MADM.'
+        ),
         'equations': [
-            ('Fórmula', r'r_{ij}=\dfrac{x_{ij}}{\sqrt{\sum_i x_{ij}^{2}}}'),
+            ('Todos los criterios', r'r_{ij}=\dfrac{x_{ij}}{\sqrt{\sum_i x_{ij}^{2}}}'),
         ],
     },
     'directional_vector': {
         'title': 'Vectorial direccional',
-        'intro': 'Normalización vectorial con orientación; en costos se complementa a 1.',
+        'intro': (
+            'Orienta costos a beneficio con el inverso y luego aplica la norma euclídea. '
+            'Tras normalizar, un valor mayor es mejor en todas las columnas.'
+        ),
         'equations': [
             ('Beneficio (max)', r'r_{ij}=\dfrac{x_{ij}}{\sqrt{\sum_i x_{ij}^{2}}}'),
-            ('Costo (min)', r'r_{ij}=1-\dfrac{x_{ij}}{\sqrt{\sum_i x_{ij}^{2}}}'),
+            ('Costo (min)', r'r_{ij}=\dfrac{1/x_{ij}}{\sqrt{\sum_i (1/x_{ij})^{2}}}'),
         ],
     },
     'sum': {
